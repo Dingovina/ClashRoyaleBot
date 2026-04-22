@@ -114,6 +114,27 @@ Use this file to record high-impact technical decisions.
 
 ---
 
+### DEC-0007: Sprint 2 — match readiness gate (heuristic battlefield detector)
+- Status: Accepted
+- Date: 2026-04-22
+- Context:
+  - The runtime must not send card hotkeys or placement clicks while the operator is still on the desktop, launcher, or main menu.
+  - v1 should avoid heavy ML dependencies for this gate; tuning must be YAML-driven with clear operator logs.
+- Decision:
+  - Add a **pre-loop wait** on live fullscreen capture when `match_readiness_enabled` is true (requires `capture_enabled`).
+  - Use a **heuristic detector** on the **playfield ROI** (`game_viewport` rectangle × `anchor_rect`): sample BGRA pixels in a central horizontal band for **blue-dominant “river”** pixels and a lower band for **green-dominant “turf”**; combine band hit rates into a score compared to `battlefield_score_threshold` (see `src/runtime/battlefield_detector.py`).
+  - Emit structured logs: `waiting_for_battlefield` (includes `reason=` for capture/foreground cases), `battlefield_detected`, `battlefield_wait_timeout`, and `battlefield_timeout_continue` when falling back to idle actuation lockout.
+  - If the wait exceeds `battlefield_wait_timeout_ms` (`0` disables the deadline), honor `battlefield_timeout_behavior`: **`idle`** keeps the main loop but forces `NO_OP` actuation with `match_readiness_not_ready`; **`exit_nonzero`** terminates the process with **exit code 2**.
+  - Optional **`foreground_check_enabled`** on **Windows** compares the foreground window title to `foreground_title_substrings`; other platforms log a one-time skip and do not block on title.
+- Consequences:
+  - Menus or loading screens with little blue/green in the playfield ROI tend to **false negatives** (longer wait); some non-match UIs with strong blue+green decoration could **false positive** (operator should tune thresholds/bands or enable the foreground check).
+  - Full HD BGRA copies (~8 MB) occur only during the wait loop when pixels are needed for scoring.
+- Alternatives considered:
+  - **Template matching** on a reference patch (rejected for v1 to avoid shipping brittle binary assets and extra OpenCV coupling).
+  - **Small classifier** (deferred until a labeled menu/battle dataset exists).
+
+---
+
 ### DEC-0006: Documentation split — roadmap vs README vs decisions
 - Status: Accepted
 - Date: 2026-04-23

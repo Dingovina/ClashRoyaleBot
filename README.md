@@ -71,4 +71,6 @@ Work is sequenced in `ROADMAP.md` by sprint. High-level tracks:
 
 **Sprints 0–1 (environment + observe/act shell):** delivered as described in **`DECISIONS.md` (DEC-0005)** and in **`src/runtime/README.md`** (tick loop, policy gate, zones, capture, viewport/anchor mapping, actuation, tests, Dockerfiles).
 
-**Next:** current sprint in `ROADMAP.md` (Sprint 2 — match readiness gate).
+**Sprint 2 (match readiness gate):** delivered as described in **`DECISIONS.md` (DEC-0007)** and **`src/runtime/README.md`** (pre-loop wait on live capture, heuristic battlefield score on the playfield ROI, structured wait/detect logs, timeout behaviors, optional Windows foreground title check).
+
+**Next:** current sprint in `ROADMAP.md` (Sprint 3 — coarse perception + rule baseline).

@@ -8,6 +8,13 @@ This package contains real-time match execution code.
 - Policy gate with confidence and legality checks.
 - 12-zone board map with fixed anchor points.
 
+## Sprint 2 additions
+- **Match readiness gate:** before the tick loop, the runtime optionally waits on fullscreen capture until a **heuristic battlefield** score (river-like and turf-like color bands inside `game_viewport` × `anchor_rect`) crosses `battlefield_score_threshold`, with logs `waiting_for_battlefield` / `battlefield_detected` / `battlefield_wait_timeout`.
+- **No actuation until ready:** while the gate has not passed (or after a timeout with `battlefield_timeout_behavior: idle`), policy decisions are forced to `NO_OP` with reason `match_readiness_not_ready`, so **no card hotkeys and no deploy clicks** are emitted.
+- **Timeouts:** `battlefield_wait_timeout_ms` (use `0` for no wall-clock limit) plus `battlefield_timeout_behavior` `idle` (keep looping with actuation blocked) or `exit_nonzero` (process exits with code **2**).
+- **Foreground (optional, Windows):** `foreground_check_enabled` compares the foreground window title (lowercased) against `foreground_title_substrings` before accepting a battlefield; non-Windows hosts log `foreground_check_skipped` once and do not enforce the check.
+- **Config validation:** `match_readiness_enabled: true` requires `capture_enabled: true` (YAML load fails otherwise).
+
 ## Sprint 1 additions
 - Fullscreen capture plumbing with optional debug frame dumps.
 - Keyboard + mouse actuation layer with safe `dry-run` mode.
@@ -18,6 +25,8 @@ This package contains real-time match execution code.
 - `game_viewport.anchor_rect` maps anchors into a sub-rectangle of the client window (for example to exclude the bottom hand / elixir bar).
 
 ## Current modules
+- `battlefield_detector.py` scores BGRA playfield crops (heuristic bands) and is used by the readiness wait loop.
+- `foreground_win.py` reads the Windows foreground window title for optional focus gating.
 - `viewport.py` defines `GameViewport` / `AnchorRect` and parses `runtime.game_viewport` from YAML.
 - `config.py` loads runtime settings from `configs/runtime.yaml`.
 - `zones.py` stores 4x3 zone geometry and legality masks.
@@ -25,5 +34,5 @@ This package contains real-time match execution code.
 - `capture.py` grabs fullscreen frames from the active display.
 - `actuation.py` sends keyboard card selection (`pynput` first, `pyautogui` fallback) and mouse click placement (`pyautogui`).
 - `candidate_policy.py` provides scripted candidate actions for reliability tests.
-- `loop.py` runs capture -> policy -> gate -> actuation and logs decisions.
+- `loop.py` optionally waits for match readiness, then runs capture -> policy -> gate -> actuation and logs decisions.
 - `__main__.py` starts runtime via `python -m src.runtime`.

@@ -25,7 +25,8 @@ def main() -> None:
     logger = logging.getLogger("runtime")
 
     config = RuntimeConfig.from_file(args.config)
-    RuntimeLoop(config=config, logger=logger).run()
+    exit_code = RuntimeLoop(config=config, logger=logger).run()
+    raise SystemExit(exit_code)
 
 
 if __name__ == "__main__":
