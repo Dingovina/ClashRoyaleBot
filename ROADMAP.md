@@ -4,9 +4,21 @@ This file lists **upcoming work only**. Product constraints, accepted defaults, 
 
 ## Current sprint
 
-**Sprint 2 — Coarse perception + rule baseline**
+**Sprint 2 — Match readiness gate**
 
-## Sprint 2 (Day 6–9)
+## Sprint 2 (Day 6–7) — Match readiness gate
+
+- [ ] On startup, runtime stays in an **idle / waiting** state until a **battlefield-present** signal is inferred from captured frames (no card hotkeys, no deploy clicks).
+- [ ] Implement a **battlefield detector** (minimal viable approach: template match, lightweight heuristic, or small classifier — pick one and document trade-offs) with configurable thresholds and clear logs (`waiting_for_battlefield`, `battlefield_detected`, etc.).
+- [ ] Add **timeouts / safe fallback** if the battlefield never appears (e.g. remain idle or exit with a clear status code).
+- [ ] *(Optional)* **Foreground / game-window check:** before leaving idle, verify the expected **Clash Royale** (or **Google Play Games** host) window is focused; if not, log and stay idle.
+
+### Sprint 2 exit criteria
+
+- [ ] Cold start on main menu, desktop, or wrong focused window produces **zero** actuation events until a valid battlefield is visible (and optional focus check passes).
+- [ ] One short note in repo (e.g. `DECISIONS.md` or `src/runtime/README.md`) documents baseline false negative / false positive behavior for the chosen detector.
+
+## Sprint 3 (Day 8–11) — Coarse perception + rule baseline
 
 - [ ] Coarse state extraction from frames:
   - [ ] hand presence (four slots),
@@ -18,29 +30,29 @@ This file lists **upcoming work only**. Product constraints, accepted defaults, 
   - [ ] defense-first logic,
   - [ ] no-op under low confidence.
 
-### Sprint 2 exit criteria
+### Sprint 3 exit criteria
 
 - [ ] Full match can run with rule policy end-to-end.
 - [ ] Logs contain state snapshots and chosen actions.
 
-## Sprint 3 (Day 10–12) — Imitation pipeline v1
+## Sprint 4 (Day 12–14) — Imitation pipeline v1
 
 - [ ] Dataset export from recorded sessions.
 - [ ] Train first imitation model (single fixed deck regime).
 - [ ] Connect inference model into runtime loop.
 
-### Sprint 3 exit criteria
+### Sprint 4 exit criteria
 
 - [ ] Model inference runs in real time on target laptop.
 - [ ] Behavior is measurably better than random baseline.
 
-## Sprint 4 (Day 13–14) — Evaluation and demo hardening
+## Sprint 5 (Day 15–16) — Evaluation and demo hardening
 
 - [ ] Run at least 20 evaluation matches.
 - [ ] Report win rate, damage delta, invalid actions, latency, stability.
 - [ ] Fix only highest-impact runtime failures.
 
-### Sprint 4 exit criteria
+### Sprint 5 exit criteria
 
 - [ ] Demo package and report are ready.
 
