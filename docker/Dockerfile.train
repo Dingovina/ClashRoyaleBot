@@ -4,9 +4,10 @@ WORKDIR /app
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
-
-RUN pip install --no-cache-dir --upgrade pip
+ENV PIP_DEFAULT_TIMEOUT=120
 
 COPY . /app
+
+RUN pip install --no-cache-dir --retries 10 -r requirements.txt
 
 CMD ["python", "-m", "src.train"]
