@@ -20,13 +20,13 @@ runtime:
     - "4"
   # Sprint 2: no deploy/hotkeys until the arena is visible (see src/runtime/README.md).
   match_readiness_enabled: true
-  # heuristic | model | blend (model needs PyTorch + battlefield_model_path).
-  battlefield_detector: heuristic
+  # heuristic | model | blend (model needs PyTorch + battlefield_model_path + trained .pt).
+  battlefield_detector: model
   # Probability (model / blend) or soft score (heuristic) threshold.
-  battlefield_score_threshold: 0.14
+  battlefield_score_threshold: 0.99
   # Trained weights from: python scripts/train_battlefield_classifier.py
-  # battlefield_model_path: artifacts/battlefield_cnn.pt
-  # battlefield_model_input_size: 128
+  battlefield_model_path: artifacts/battlefield_cnn.pt
+  battlefield_model_input_size: 128
   # HUD layout for CNN ROI (bottom panel with cards/elixir masked out).
   battlefield_model_layout_path: configs/screen_layout_reference.yaml
   battlefield_sample_stride: 10

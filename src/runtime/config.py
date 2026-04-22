@@ -48,6 +48,14 @@ class RuntimeConfig:
     @staticmethod
     def from_file(path: Path) -> "RuntimeConfig":
         data = _load_yaml(path)
+        if "runtime" not in data:
+            found = list(data.keys())
+            raise ValueError(
+                f"{path}: missing top-level key 'runtime'. Found keys: {found}. "
+                "Fix the YAML so the block starts with exactly `runtime:` (no stray characters)."
+            )
+        if "board" not in data:
+            raise ValueError(f"{path}: missing top-level key 'board'. Found keys: {list(data.keys())}")
         runtime = data["runtime"]
         board = data["board"]
         card_types = data.get("card_types", {})
