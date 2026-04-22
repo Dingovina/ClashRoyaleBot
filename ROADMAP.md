@@ -135,14 +135,14 @@ These thresholds are defaults and can be tuned after first evaluation runs.
 ## 7) 14-Day Sprint Plan
 
 ## Sprint 0 (Day 1-2) - Environment and Skeleton
-- Finalize repository structure.
-- Create train/runtime Docker environments.
-- Add a minimal runtime app skeleton (capture loop + action interface placeholders).
-- Implement fixed 500 ms tick contract.
+- [x] Finalize repository structure.
+- [x] Create train/runtime Docker environments.
+- [x] Add a minimal runtime app skeleton (capture loop + action interface placeholders).
+- [x] Implement fixed 500 ms tick contract.
 
 ### Exit criteria
-- `docker compose` starts both environments.
-- Runtime skeleton can run without crashing.
+- [ ] `docker compose` starts both environments.
+- [x] Runtime skeleton can run without crashing.
 
 ## Sprint 1 (Day 3-5) - Observe + Act Reliability
 - Implement fullscreen capture for Google Play Games.

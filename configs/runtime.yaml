@@ -1,0 +1,30 @@
+runtime:
+  tick_interval_ms: 500
+  action_rate_limit_ms: 1000
+  action_confidence_threshold: 0.70
+  no_op_confidence_threshold: 0.55
+  min_elixir_for_non_urgent_action: 3.0
+  max_ticks: 20
+
+board:
+  rows: 4
+  cols: 3
+  zones:
+    "0": [0.17, 0.125]
+    "1": [0.50, 0.125]
+    "2": [0.83, 0.125]
+    "3": [0.17, 0.375]
+    "4": [0.50, 0.375]
+    "5": [0.83, 0.375]
+    "6": [0.17, 0.625]
+    "7": [0.50, 0.625]
+    "8": [0.83, 0.625]
+    "9": [0.17, 0.875]
+    "10": [0.50, 0.875]
+    "11": [0.83, 0.875]
+
+card_types:
+  spell_cards:
+    - arrows
+    - fireball
+    - zap
