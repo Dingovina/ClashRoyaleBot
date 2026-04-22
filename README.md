@@ -56,7 +56,7 @@ Default confidence and elixir rules are **accepted ADRs** (`DECISIONS.md`, e.g. 
 When `match_readiness_enabled` is true, the runtime loads **`artifacts/battlefield_cnn.pt`** by default (override with `battlefield_model_path` in `configs/runtime.yaml`). If that file is missing, configuration loading fails with instructions to train the model.
 
 1. Install ML dependencies from the repository root: `pip install -r requirements-ml.txt`.
-2. Add labeled fullscreen captures under a directory such as `data/battlefield_test/`: filenames **`true_*.png`** for in-match / arena views and **`false_*.png`** for menus, loading, deck, etc. (at least four samples; see `scripts/train_battlefield_classifier.py` for naming rules).
+2. Add labeled fullscreen captures under `data/battlefield_test/good/` (in-match) and `data/battlefield_test/bad/` (not in-match), each as `*.png` (at least four images total; see `scripts/train_battlefield_classifier.py`).
 3. Train from the **repository root** (so `src` resolves):
 
    ```powershell

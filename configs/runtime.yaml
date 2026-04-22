@@ -6,7 +6,7 @@ runtime:
   min_elixir_for_non_urgent_action: 3.0
   # Main loop stops when the battlefield CNN stays below battlefield_end_score_threshold
   # for match_end_confirm_ticks consecutive probes (every match_end_check_every_n_ticks ticks).
-  # match_safety_max_ticks is a hard ceiling (set 0 to disable only if match_end_confirm_ticks > 0).
+  # Hard ceiling on main-loop ticks (0 = unlimited if CNN match-end is active).
   match_safety_max_ticks: 7200
   battlefield_end_score_threshold: 0.42
   match_end_confirm_ticks: 6

@@ -145,7 +145,7 @@ Use this file to record high-impact technical decisions.
 - Decision:
   - Replace fixed ``max_ticks`` as the primary stop condition with **CNN-based match end**: periodically (``match_end_check_every_n_ticks``) capture BGRA and run the same model; when probability stays **below** ``battlefield_end_score_threshold`` for ``match_end_confirm_ticks`` consecutive probes, exit the main loop with log ``runtime_finished reason=battlefield_absent``.
   - Require **hysteresis**: ``battlefield_end_score_threshold`` must be **less than** ``battlefield_score_threshold`` (start gate vs end gate).
-  - Keep ``match_safety_max_ticks`` as a **hard ceiling** on loop iterations (``0`` disables the cap only when CNN match-end is enabled with ``match_end_confirm_ticks > 0``). Legacy YAML key ``max_ticks`` maps to ``match_safety_max_ticks`` when the new key is absent.
+  - Keep ``match_safety_max_ticks`` as a **hard ceiling** on loop iterations (``0`` = no cap when CNN match-end is enabled with ``match_end_confirm_ticks > 0``).
   - If ``match_end_confirm_ticks`` is ``0``, CNN match-end is disabled and ``match_safety_max_ticks`` must be ``> 0`` so the process cannot run forever without another stop condition.
 - Consequences:
   - Extra fullscreen captures with pixels on a subset of ticks during the match; operators tune sampling and thresholds for latency vs reliability.

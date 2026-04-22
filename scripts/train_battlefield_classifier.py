@@ -2,8 +2,7 @@
 """
 Train the tiny battlefield screen classifier on labeled PNGs.
 
-Expects files named ``true_*.png`` (in-match) and ``false_*.png`` (not in-match), e.g. under
-``data/battlefield_test/``.
+Expects ``--data-dir/good/*.png`` (in-match, label 1) and ``--data-dir/bad/*.png`` (not in-match, label 0).
 
 The CNN sees only the ``bottom_panel`` region from ``--layout-yaml``, with hand slots,
 next-card peek, and elixir bar pixels zeroed (same preprocessing as runtime inference).
@@ -32,19 +31,19 @@ from PIL import Image
 
 from src.perception.battlefield_net import BattlefieldScreenNet
 from src.perception.battlefield_roi import pil_rgb_masked_bottom_panel
+from src.perception.battlefield_samples import collect_battlefield_labeled_pngs
 from src.perception.screen_layout import load_screen_layout_reference
 
 
 def _collect_samples(data_dir: Path) -> list[tuple[Path, int]]:
-    samples: list[tuple[Path, int]] = []
-    for p in sorted(data_dir.glob("*.png")):
-        name = p.name.lower()
-        if name.startswith("true_"):
-            samples.append((p, 1))
-        elif name.startswith("false_"):
-            samples.append((p, 0))
+    try:
+        samples = collect_battlefield_labeled_pngs(data_dir)
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
     if len(samples) < 4:
-        raise SystemExit(f"Need at least 4 labeled PNGs in {data_dir}, found {len(samples)}")
+        raise SystemExit(
+            f"Need at least 4 labeled PNGs under {data_dir}/good and {data_dir}/bad, found {len(samples)}"
+        )
     return samples
 
 

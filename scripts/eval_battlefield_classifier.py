@@ -2,17 +2,13 @@
 """
 Evaluate a trained battlefield CNN on labeled PNGs (same ROI as training).
 
-Labels come from filenames: ``true_*.png`` → battlefield, ``false_*.png`` → not.
+Labels: ``good/*.png`` → battlefield, ``bad/*.png`` → not (under ``--data-dir``).
 
 Requires: ``pip install -r requirements-ml.txt``
 
-Example (from repository root):
+Example (from repository root, one line):
 
-  python scripts/eval_battlefield_classifier.py \\
-    --checkpoint artifacts/battlefield_cnn.pt \\
-    --data-dir data/battlefield_test \\
-    --layout-yaml configs/screen_layout_reference.yaml \\
-    --threshold 0.5
+  python scripts/eval_battlefield_classifier.py --checkpoint artifacts/battlefield_cnn.pt --data-dir data/battlefield_test --layout-yaml configs/screen_layout_reference.yaml --threshold 0.5
 """
 from __future__ import annotations
 
@@ -29,18 +25,15 @@ from PIL import Image
 
 from src.perception.battlefield_net import BattlefieldScreenNet
 from src.perception.battlefield_roi import pil_rgb_masked_bottom_panel
+from src.perception.battlefield_samples import collect_battlefield_labeled_pngs
 from src.perception.screen_layout import load_screen_layout_reference
 
 
 def _collect_samples(data_dir: Path) -> list[tuple[Path, int]]:
-    samples: list[tuple[Path, int]] = []
-    for p in sorted(data_dir.glob("*.png")):
-        name = p.name.lower()
-        if name.startswith("true_"):
-            samples.append((p, 1))
-        elif name.startswith("false_"):
-            samples.append((p, 0))
-    return samples
+    try:
+        return collect_battlefield_labeled_pngs(data_dir)
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
 
 
 def _load_tensor(path: Path, layout, size: int) -> torch.Tensor:
@@ -86,7 +79,7 @@ def main() -> None:
     layout = load_screen_layout_reference(args.layout_yaml)
     samples = _collect_samples(args.data_dir)
     if not samples:
-        raise SystemExit(f"No true_*.png / false_*.png under {args.data_dir}")
+        raise SystemExit(f"No labeled PNGs under {args.data_dir}/good and {args.data_dir}/bad")
 
     device = torch.device("cpu")
     net = BattlefieldScreenNet().to(device)
@@ -102,7 +95,12 @@ def main() -> None:
             prob = float(torch.sigmoid(net(x)).squeeze().cpu())
             y_pred = 1 if prob >= args.threshold else 0
             ok = y_pred == y_true
-            rows.append((path.name, y_true, prob, y_pred, ok))
+            root = args.data_dir.resolve()
+            try:
+                rel = str(path.resolve().relative_to(root))
+            except ValueError:
+                rel = path.name
+            rows.append((rel, y_true, prob, y_pred, ok))
             if y_true == 1 and y_pred == 1:
                 tp += 1
             elif y_true == 0 and y_pred == 1:
@@ -119,11 +117,11 @@ def main() -> None:
     print(f"correct={correct}/{n}  accuracy={correct / n:.1%}")
     print(f"confusion  tp={tp} fp={fp} tn={tn} fn={fn}  (rows: true pos / false pos / true neg / false neg)")
     print()
-    print(f"{'file':<28} {'label':>5} {'prob':>7} {'pred':>4} {'ok':>3}")
+    print(f"{'file':<40} {'label':>5} {'prob':>7} {'pred':>4} {'ok':>3}")
     for name, y_true, prob, y_pred, ok in rows:
         lab = "bf" if y_true == 1 else "no"
         prd = "bf" if y_pred == 1 else "no"
-        print(f"{name:<28} {lab:>5} {prob:>7.3f} {prd:>4} {'yes' if ok else 'no':>3}")
+        print(f"{name:<40} {lab:>5} {prob:>7.3f} {prd:>4} {'yes' if ok else 'no':>3}")
 
 
 if __name__ == "__main__":

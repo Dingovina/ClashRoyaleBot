@@ -12,7 +12,7 @@ DEFAULT_BATTLEFIELD_CHECKPOINT = "artifacts/battlefield_cnn.pt"
 
 TRAIN_BATTLEFIELD_CLASSIFIER_HELP = (
     "Install ML dependencies: pip install -r requirements-ml.txt\n"
-    "Train from labeled PNGs (true_*.png = in-match, false_*.png = not), run from repo root (one line; "
+    "Train from labeled PNGs under good/ (in-match) and bad/ (not), run from repo root (one line; "
     "do not use cmd's ^ in PowerShell—it is passed to Python as an argument):\n"
     "  python scripts/train_battlefield_classifier.py --data-dir data/battlefield_test "
     "--layout-yaml configs/screen_layout_reference.yaml --out artifacts/battlefield_cnn.pt\n"
@@ -44,8 +44,6 @@ def load_runtime_config(path: Path) -> RuntimeConfig:
     model_path = _parse_optional_path(runtime.get("battlefield_model_path"))
     if match_readiness_enabled and not model_path:
         model_path = DEFAULT_BATTLEFIELD_CHECKPOINT
-
-    _reject_legacy_battlefield_detector(runtime)
 
     cfg = RuntimeConfig(
         tick_interval_ms=int(runtime["tick_interval_ms"]),
@@ -86,25 +84,8 @@ def load_runtime_config(path: Path) -> RuntimeConfig:
 
 
 def _parse_match_safety_max_ticks(runtime: dict[str, Any]) -> int:
-    """Hard cap on main-loop ticks. Legacy YAML key ``max_ticks`` maps here if ``match_safety_max_ticks`` is absent."""
-    if "match_safety_max_ticks" in runtime:
-        return max(0, int(runtime["match_safety_max_ticks"]))
-    if "max_ticks" in runtime:
-        return max(0, int(runtime["max_ticks"]))
-    return 7200
-
-
-def _reject_legacy_battlefield_detector(runtime: dict[str, Any]) -> None:
-    if "battlefield_detector" not in runtime:
-        return
-    raw = str(runtime.get("battlefield_detector", "")).lower().strip()
-    if raw in ("", "model"):
-        return
-    raise ValueError(
-        f"runtime.battlefield_detector={raw!r} is no longer supported. "
-        "Match readiness uses the battlefield CNN only; remove battlefield_detector from configs/runtime.yaml "
-        "(or set it to model)."
-    )
+    """Hard cap on main-loop ticks (0 = no cap when CNN match-end is enabled)."""
+    return max(0, int(runtime.get("match_safety_max_ticks", 7200)))
 
 
 def _torch_available() -> bool:
