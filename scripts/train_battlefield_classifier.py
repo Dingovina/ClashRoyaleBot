@@ -10,10 +10,10 @@ next-card peek, and elixir bar pixels zeroed (same preprocessing as runtime infe
 
 Requires: ``pip install -r requirements-ml.txt``
 
-Example (run from the repository root so ``src`` resolves):
+Example (run from the repository root so ``src`` resolves). In **PowerShell** use a single line: the
+caret (^) is **not** a line-continuation character (unlike cmd.exe), so it is passed to Python and breaks argparse.
 
-  python scripts/train_battlefield_classifier.py --data-dir data/battlefield_test \\
-    --layout-yaml configs/screen_layout_reference.yaml --out artifacts/battlefield_cnn.pt
+  python scripts/train_battlefield_classifier.py --data-dir data/battlefield_test --layout-yaml configs/screen_layout_reference.yaml --out artifacts/battlefield_cnn.pt
 """
 from __future__ import annotations
 

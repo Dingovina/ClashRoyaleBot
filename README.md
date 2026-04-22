@@ -57,16 +57,16 @@ When `match_readiness_enabled` is true, the runtime loads **`artifacts/battlefie
 
 1. Install ML dependencies from the repository root: `pip install -r requirements-ml.txt`.
 2. Add labeled fullscreen captures under a directory such as `data/battlefield_test/`: filenames **`true_*.png`** for in-match / arena views and **`false_*.png`** for menus, loading, deck, etc. (at least four samples; see `scripts/train_battlefield_classifier.py` for naming rules).
-3. Train (still from repo root so `src` resolves):
+3. Train from the **repository root** (so `src` resolves):
 
-   ```bash
-   python scripts/train_battlefield_classifier.py ^
-     --data-dir data/battlefield_test ^
-     --layout-yaml configs/screen_layout_reference.yaml ^
+   ```powershell
+   python scripts/train_battlefield_classifier.py `
+     --data-dir data/battlefield_test `
+     --layout-yaml configs/screen_layout_reference.yaml `
      --out artifacts/battlefield_cnn.pt
    ```
 
-   On PowerShell, line continuation is `` ` `` instead of `^` if you prefer. Optional flags include `--input-size`, `--epochs`, and `--lr` (see the script’s `--help`).
+   **cmd.exe** may use `^` at end-of-line for continuation. Optional flags: `--input-size`, `--epochs`, `--lr` (see `python scripts/train_battlefield_classifier.py --help`).
 4. Tune `battlefield_score_threshold` in `configs/runtime.yaml` after checking probabilities, for example with `python scripts/eval_battlefield_classifier.py --checkpoint artifacts/battlefield_cnn.pt --data-dir data/battlefield_test`.
 5. If your HUD geometry differs from the reference 1920×1080 layout, copy and edit `configs/screen_layout_reference.yaml`, then point `battlefield_model_layout_path` at your file for both training and runtime.
 

@@ -21,8 +21,8 @@ runtime:
   # Pre-loop wait until the battlefield CNN accepts the screen (see README and src/runtime/README.md).
   match_readiness_enabled: true
   # Sigmoid probability threshold for the CNN (tune after training, often ~0.55–0.85).
-  battlefield_score_threshold: 0.99
-  # Trained weights (default). Train with: python scripts/train_battlefield_classifier.py ...
+  battlefield_score_threshold: 0.95
+  # Trained weights (default). Train: see README.md (one-line python ... command from repo root).
   battlefield_model_path: artifacts/battlefield_cnn.pt
   # HUD layout for CNN ROI (bottom panel with cards/elixir masked out).
   battlefield_model_layout_path: configs/screen_layout_reference.yaml

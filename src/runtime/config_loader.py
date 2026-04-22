@@ -12,11 +12,10 @@ DEFAULT_BATTLEFIELD_CHECKPOINT = "artifacts/battlefield_cnn.pt"
 
 TRAIN_BATTLEFIELD_CLASSIFIER_HELP = (
     "Install ML dependencies: pip install -r requirements-ml.txt\n"
-    "Train from labeled PNGs (true_*.png = in-match, false_*.png = not), run from repo root:\n"
-    "  python scripts/train_battlefield_classifier.py \\\n"
-    "    --data-dir data/battlefield_test \\\n"
-    "    --layout-yaml configs/screen_layout_reference.yaml \\\n"
-    "    --out artifacts/battlefield_cnn.pt\n"
+    "Train from labeled PNGs (true_*.png = in-match, false_*.png = not), run from repo root (one line; "
+    "do not use cmd's ^ in PowerShell—it is passed to Python as an argument):\n"
+    "  python scripts/train_battlefield_classifier.py --data-dir data/battlefield_test "
+    "--layout-yaml configs/screen_layout_reference.yaml --out artifacts/battlefield_cnn.pt\n"
     "Optionally set --input-size to match your checkpoint (default 128). "
     "Then set runtime.battlefield_model_path in configs/runtime.yaml if the file is not at the default path."
 )
