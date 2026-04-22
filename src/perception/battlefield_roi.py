@@ -3,7 +3,7 @@ from __future__ import annotations
 import numpy as np
 import torch
 
-from src.runtime.screen_layout import ScreenLayoutReference, intersect_pixel_rects
+from src.perception.screen_layout import ScreenLayoutReference, intersect_pixel_rects
 
 
 def bgra_masked_bottom_panel_rgb_tensor(

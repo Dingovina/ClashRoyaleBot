@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import unittest
 
-from src.runtime.config import RuntimeConfig
+from src.runtime.runtime_config import RuntimeConfig
 from src.runtime.viewport import GameViewport
 from src.runtime.policy_gate import PolicyGate
 from src.runtime.types import CandidateAction, RuntimeState

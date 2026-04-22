@@ -3,7 +3,7 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 
-from src.runtime.screen_layout import PixelRect, intersect_pixel_rects, load_screen_layout_reference
+from src.perception.screen_layout import PixelRect, intersect_pixel_rects, load_screen_layout_reference
 
 
 class ScreenLayoutTests(unittest.TestCase):

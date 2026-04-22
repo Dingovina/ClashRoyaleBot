@@ -8,13 +8,10 @@ from pathlib import Path
 
 from src.perception.battlefield_infer import clear_battlefield_runner_cache
 
-from src.runtime.battlefield_detector import (
-    BattlefieldDetectorConfig,
-    crop_playfield_bgra,
-    evaluate_battlefield,
-    score_battlefield_heuristic_bgra,
-)
-from src.runtime.viewport import AnchorRect, GameViewport
+from src.perception.battlefield_heuristic import score_battlefield_heuristic_bgra
+from src.runtime.battlefield_config import BattlefieldDetectorConfig
+from src.runtime.battlefield_evaluate import evaluate_battlefield
+from src.runtime.viewport import AnchorRect, GameViewport, crop_playfield_bgra
 
 
 class BattlefieldDetectorTests(unittest.TestCase):

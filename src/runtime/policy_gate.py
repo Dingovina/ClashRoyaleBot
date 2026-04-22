@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from src.runtime.config import RuntimeConfig
+from src.runtime.runtime_config import RuntimeConfig
 from src.runtime.types import ActionDecision, CandidateAction, RuntimeState
 from src.runtime.zones import ZoneMap
 

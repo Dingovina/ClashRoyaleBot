@@ -96,3 +96,39 @@ def _optional_int(value: Any) -> int | None:
     if value is None:
         return None
     return int(value)
+
+
+def crop_playfield_bgra(
+    frame_width: int,
+    frame_height: int,
+    pixels_bgra: bytes,
+    viewport: GameViewport,
+) -> tuple[int, int, bytes]:
+    """Crop the configured playfield (viewport × anchor_rect) from a fullscreen BGRA capture."""
+    if frame_width <= 0 or frame_height <= 0:
+        return (0, 0, b"")
+    if len(pixels_bgra) != frame_width * frame_height * 4:
+        raise ValueError("pixels_bgra size does not match frame dimensions")
+
+    left, top, vw, vh = viewport.rect_for_frame(frame_width, frame_height)
+    rect = viewport.anchor_rect
+    x0 = left + int(rect.left_ratio * vw)
+    y0 = top + int(rect.top_ratio * vh)
+    roi_w = max(0, int(rect.width_ratio * vw))
+    roi_h = max(0, int(rect.height_ratio * vh))
+
+    x0 = max(0, min(x0, frame_width - 1))
+    y0 = max(0, min(y0, frame_height - 1))
+    roi_w = min(roi_w, frame_width - x0)
+    roi_h = min(roi_h, frame_height - y0)
+    if roi_w <= 0 or roi_h <= 0:
+        return (0, 0, b"")
+
+    row_stride = frame_width * 4
+    out = bytearray(roi_w * roi_h * 4)
+    out_row = 0
+    for y in range(y0, y0 + roi_h):
+        src = y * row_stride + x0 * 4
+        out[out_row : out_row + roi_w * 4] = pixels_bgra[src : src + roi_w * 4]
+        out_row += roi_w * 4
+    return (roi_w, roi_h, bytes(out))

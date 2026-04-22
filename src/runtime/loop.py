@@ -1,17 +1,15 @@
 from __future__ import annotations
 
 import logging
-import sys
 import time
 from dataclasses import dataclass
 
 from src.runtime.actuation import InputActuator
-from src.runtime.battlefield_detector import BattlefieldDetectorConfig, evaluate_battlefield
 from src.runtime.candidate_policy import propose_candidate_action
-from src.runtime.capture import FrameObservation, FullscreenCapture
-from src.runtime.config import RuntimeConfig
-from src.runtime.foreground_win import foreground_matches, foreground_title_lower
+from src.runtime.capture import FullscreenCapture, frame_for_tick
+from src.runtime.match_readiness import wait_for_match_readiness
 from src.runtime.policy_gate import PolicyGate
+from src.runtime.runtime_config import RuntimeConfig
 from src.runtime.types import ActionDecision, RuntimeState
 from src.runtime.zones import ZoneMap, build_default_zone_map
 
@@ -38,7 +36,7 @@ class RuntimeLoop:
             card_hotkeys=self.config.actuation_card_hotkeys,
         )
 
-        exit_code, match_ready = self._prepare_match_readiness(capture)
+        exit_code, match_ready = wait_for_match_readiness(self.config, self.logger, capture)
         if exit_code != 0:
             return exit_code
 
@@ -66,88 +64,6 @@ class RuntimeLoop:
         self.logger.info("runtime_finished ticks=%s", self.config.max_ticks)
         return 0
 
-    def _prepare_match_readiness(self, capture: FullscreenCapture) -> tuple[int, bool]:
-        if not self.config.match_readiness_enabled:
-            return (0, True)
-
-        detector = BattlefieldDetectorConfig(
-            method=self.config.battlefield_detector,
-            score_threshold=self.config.battlefield_score_threshold,
-            sample_stride=self.config.battlefield_sample_stride,
-            river_band_top_ratio=self.config.battlefield_river_band_top_ratio,
-            river_band_bottom_ratio=self.config.battlefield_river_band_bottom_ratio,
-            grass_band_top_ratio=self.config.battlefield_grass_band_top_ratio,
-            grass_band_bottom_ratio=self.config.battlefield_grass_band_bottom_ratio,
-            model_path=self.config.battlefield_model_path,
-            model_input_size=self.config.battlefield_model_input_size,
-            model_layout_path=self.config.battlefield_model_layout_path,
-        )
-
-        if self.config.battlefield_wait_timeout_ms > 0:
-            deadline = time.perf_counter() + self.config.battlefield_wait_timeout_ms / 1000.0
-        else:
-            deadline = None
-
-        wait_tick = 0
-        logged_foreground_skip = False
-        while True:
-            if deadline is not None and time.perf_counter() > deadline:
-                self.logger.info(
-                    "battlefield_wait_timeout behavior=%s timeout_ms=%s",
-                    self.config.battlefield_timeout_behavior,
-                    self.config.battlefield_wait_timeout_ms,
-                )
-                if self.config.battlefield_timeout_behavior == "exit_nonzero":
-                    return (2, False)
-                self.logger.info("battlefield_timeout_continue actuation_blocked=1")
-                return (0, False)
-
-            frame = capture.capture(wait_tick, include_pixels=True)
-            wait_tick += 1
-
-            if frame.width <= 0 or frame.source != "fullscreen" or not frame.pixels_bgra:
-                self.logger.info("waiting_for_battlefield reason=capture_unavailable source=%s", frame.source)
-                time.sleep(self.config.tick_interval_ms / 1000.0)
-                continue
-
-            if self.config.foreground_check_enabled:
-                if sys.platform != "win32":
-                    if not logged_foreground_skip:
-                        self.logger.info("foreground_check_skipped reason=non_windows_platform")
-                        logged_foreground_skip = True
-                else:
-                    title = foreground_title_lower()
-                    if not foreground_matches(title or "", self.config.foreground_title_substrings):
-                        self.logger.info(
-                            "waiting_for_battlefield reason=foreground_mismatch title=%r",
-                            title or "",
-                        )
-                        time.sleep(self.config.tick_interval_ms / 1000.0)
-                        continue
-
-            ready, score = evaluate_battlefield(
-                frame_width=frame.width,
-                frame_height=frame.height,
-                pixels_bgra=frame.pixels_bgra,
-                viewport=self.config.game_viewport,
-                detector=detector,
-                logger=self.logger,
-            )
-            if ready:
-                self.logger.info(
-                    "battlefield_detected score=%.3f threshold=%.3f",
-                    score,
-                    self.config.battlefield_score_threshold,
-                )
-                return (0, True)
-
-            self.logger.info(
-                "waiting_for_battlefield score=%.3f threshold=%.3f",
-                score,
-                self.config.battlefield_score_threshold,
-            )
-            time.sleep(self.config.tick_interval_ms / 1000.0)
-
     def _run_tick(
         self,
         tick_id: int,
@@ -161,7 +77,7 @@ class RuntimeLoop:
     ) -> None:
         tick_start = time.perf_counter()
         now_ms = int((tick_start - loop_start) * 1000)
-        frame = _capture_or_stub(
+        frame = frame_for_tick(
             capture,
             self.config.capture_enabled,
             tick_id,
@@ -217,18 +133,3 @@ class RuntimeLoop:
         elapsed_ms = int((time.perf_counter() - tick_start) * 1000)
         sleep_ms = max(0, self.config.tick_interval_ms - elapsed_ms)
         time.sleep(sleep_ms / 1000.0)
-
-
-def _capture_or_stub(
-    capture: FullscreenCapture, enabled: bool, tick_id: int, *, include_pixels: bool
-) -> FrameObservation:
-    if not enabled:
-        return FrameObservation(
-            width=0,
-            height=0,
-            capture_latency_ms=0,
-            source="disabled",
-            screenshot_path=None,
-            pixels_bgra=None,
-        )
-    return capture.capture(tick_id, include_pixels=include_pixels)

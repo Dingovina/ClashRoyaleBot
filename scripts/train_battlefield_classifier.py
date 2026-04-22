@@ -32,7 +32,7 @@ from PIL import Image
 
 from src.perception.battlefield_net import BattlefieldScreenNet
 from src.perception.battlefield_roi import pil_rgb_masked_bottom_panel
-from src.runtime.screen_layout import load_screen_layout_reference
+from src.perception.screen_layout import load_screen_layout_reference
 
 
 def _collect_samples(data_dir: Path) -> list[tuple[Path, int]]:

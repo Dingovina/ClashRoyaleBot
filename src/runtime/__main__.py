@@ -4,7 +4,7 @@ import argparse
 import logging
 from pathlib import Path
 
-from src.runtime.config import RuntimeConfig
+from src.runtime.config_loader import load_runtime_config
 from src.runtime.loop import RuntimeLoop
 
 
@@ -24,7 +24,7 @@ def main() -> None:
     )
     logger = logging.getLogger("runtime")
 
-    config = RuntimeConfig.from_file(args.config)
+    config = load_runtime_config(args.config)
     exit_code = RuntimeLoop(config=config, logger=logger).run()
     raise SystemExit(exit_code)
 
