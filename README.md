@@ -18,6 +18,7 @@ The repository is early-stage. Over time it will grow architecture notes, traini
 | **Architecture decisions (ADRs)** | `DECISIONS.md` |
 | **Runtime package (modules, shipped behavior)** | `src/runtime/README.md` |
 | **Runtime configuration** | `configs/runtime.yaml` |
+| **Battlefield CNN (train / optional runtime)** | `scripts/train_battlefield_classifier.py`, `requirements-ml.txt` |
 | **Docker usage** | `docs/docker-basics.md` |
 
 ---

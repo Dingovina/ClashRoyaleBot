@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable
 from dataclasses import dataclass
+from pathlib import Path
 
 from src.runtime.viewport import GameViewport
 
@@ -102,7 +103,6 @@ def score_battlefield_heuristic_bgra(
 
     river = band_score(ry0, ry1, _is_water_bgra)
     grass = band_score(gy0, gy1, _is_grass_bgra)
-    # Weight river slightly higher (menus rarely reproduce both signatures together).
     score = min(1.0, river * 1.15) * 0.55 + min(1.0, grass * 1.15) * 0.45
     if logger:
         logger.debug(
@@ -114,6 +114,47 @@ def score_battlefield_heuristic_bgra(
     return float(score)
 
 
+def _heuristic_score_full_frame(
+    frame_width: int,
+    frame_height: int,
+    pixels_bgra: bytes,
+    viewport: GameViewport,
+    detector: BattlefieldDetectorConfig,
+    logger: logging.Logger,
+) -> float:
+    rw, rh, roi = crop_playfield_bgra(frame_width, frame_height, pixels_bgra, viewport)
+    if rw <= 0 or rh <= 0:
+        return 0.0
+    return score_battlefield_heuristic_bgra(
+        rw,
+        rh,
+        roi,
+        sample_stride=detector.sample_stride,
+        river_top_ratio=detector.river_band_top_ratio,
+        river_bottom_ratio=detector.river_band_bottom_ratio,
+        grass_top_ratio=detector.grass_band_top_ratio,
+        grass_bottom_ratio=detector.grass_band_bottom_ratio,
+        logger=logger,
+    )
+
+
+def _model_probability(
+    frame_width: int,
+    frame_height: int,
+    pixels_bgra: bytes,
+    viewport: GameViewport,
+    detector: BattlefieldDetectorConfig,
+    logger: logging.Logger,
+) -> float:
+    from src.perception.battlefield_infer import get_battlefield_runner
+
+    if not detector.model_path:
+        return 0.0
+    path = Path(detector.model_path)
+    runner = get_battlefield_runner(path, logger)
+    return runner.probability_battlefield(frame_width, frame_height, pixels_bgra, viewport)
+
+
 @dataclass(frozen=True)
 class BattlefieldDetectorConfig:
     method: str
@@ -123,6 +164,9 @@ class BattlefieldDetectorConfig:
     river_band_bottom_ratio: float
     grass_band_top_ratio: float
     grass_band_bottom_ratio: float
+    model_path: str | None
+    """Square side length used when training; checkpoint also stores this."""
+    model_input_size: int
 
 
 def evaluate_battlefield(
@@ -136,23 +180,38 @@ def evaluate_battlefield(
 ) -> tuple[bool, float]:
     """
     Returns (is_match_ready, score). When pixels are missing, returns (False, 0.0).
+
+    ``method`` is ``heuristic`` (anchor ROI colors), ``model`` (CNN on viewport crop),
+    or ``blend`` (average of heuristic score and model probability).
     """
     if not pixels_bgra:
         return (False, 0.0)
+
+    method = detector.method.lower().strip()
+    if method not in ("heuristic", "model", "blend"):
+        logger.warning("battlefield_unknown_method method=%s using_heuristic", detector.method)
+        method = "heuristic"
+
     try:
-        rw, rh, roi = crop_playfield_bgra(frame_width, frame_height, pixels_bgra, viewport)
-    except ValueError as exc:
-        logger.warning("battlefield_detector_crop_failed err=%s", exc)
+        if method == "heuristic":
+            score = _heuristic_score_full_frame(
+                frame_width, frame_height, pixels_bgra, viewport, detector, logger
+            )
+            return (score >= detector.score_threshold, score)
+
+        if method == "model":
+            prob = _model_probability(frame_width, frame_height, pixels_bgra, viewport, detector, logger)
+            logger.debug("battlefield_model_score prob=%.4f", prob)
+            return (prob >= detector.score_threshold, prob)
+
+        # blend
+        h_score = _heuristic_score_full_frame(
+            frame_width, frame_height, pixels_bgra, viewport, detector, logger
+        )
+        prob = _model_probability(frame_width, frame_height, pixels_bgra, viewport, detector, logger)
+        score = 0.5 * h_score + 0.5 * prob
+        logger.debug("battlefield_blend heuristic=%.3f model=%.3f combined=%.3f", h_score, prob, score)
+        return (score >= detector.score_threshold, score)
+    except Exception as exc:
+        logger.warning("battlefield_detector_failed err=%s", exc)
         return (False, 0.0)
-    score = score_battlefield_heuristic_bgra(
-        rw,
-        rh,
-        roi,
-        sample_stride=detector.sample_stride,
-        river_top_ratio=detector.river_band_top_ratio,
-        river_bottom_ratio=detector.river_band_bottom_ratio,
-        grass_top_ratio=detector.grass_band_top_ratio,
-        grass_bottom_ratio=detector.grass_band_bottom_ratio,
-        logger=logger,
-    )
-    return (score >= detector.score_threshold, score)

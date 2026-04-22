@@ -41,6 +41,8 @@ class RuntimeConfig:
     battlefield_timeout_behavior: BattlefieldTimeoutBehavior
     foreground_check_enabled: bool
     foreground_title_substrings: tuple[str, ...]
+    battlefield_model_path: str | None
+    battlefield_model_input_size: int
 
     @staticmethod
     def from_file(path: Path) -> "RuntimeConfig":
@@ -91,9 +93,27 @@ class RuntimeConfig:
             ),
             foreground_check_enabled=bool(runtime.get("foreground_check_enabled", False)),
             foreground_title_substrings=_parse_foreground_title_substrings(runtime),
+            battlefield_model_path=_parse_optional_path(runtime.get("battlefield_model_path")),
+            battlefield_model_input_size=max(32, int(runtime.get("battlefield_model_input_size", 128))),
         )
         _validate_runtime_config(cfg)
         return cfg
+
+
+def _torch_available() -> bool:
+    try:
+        import torch  # noqa: F401
+
+        return True
+    except ImportError:
+        return False
+
+
+def _parse_optional_path(raw: Any) -> str | None:
+    if raw is None:
+        return None
+    s = str(raw).strip()
+    return s or None
 
 
 def _validate_runtime_config(cfg: RuntimeConfig) -> None:
@@ -103,12 +123,22 @@ def _validate_runtime_config(cfg: RuntimeConfig) -> None:
         raise ValueError("battlefield river band top ratio must be less than bottom ratio")
     if cfg.battlefield_grass_band_top_ratio >= cfg.battlefield_grass_band_bottom_ratio:
         raise ValueError("battlefield grass band top ratio must be less than bottom ratio")
+    if cfg.battlefield_detector in ("model", "blend"):
+        if not cfg.battlefield_model_path:
+            raise ValueError("battlefield_model_path is required when battlefield_detector is model or blend")
+        mp = Path(cfg.battlefield_model_path)
+        if not mp.is_file():
+            raise ValueError(f"battlefield_model_path does not exist or is not a file: {mp}")
+        if not _torch_available():
+            raise ValueError(
+                "PyTorch is required for battlefield_detector model/blend; install with: pip install -r requirements-ml.txt"
+            )
 
 
 def _parse_battlefield_detector(runtime: dict[str, Any]) -> str:
     raw = str(runtime.get("battlefield_detector", "heuristic")).lower().strip()
-    if raw not in ("heuristic",):
-        raise ValueError(f"runtime.battlefield_detector must be 'heuristic' for now, got {raw!r}")
+    if raw not in ("heuristic", "model", "blend"):
+        raise ValueError(f"runtime.battlefield_detector must be heuristic, model, or blend, got {raw!r}")
     return raw
 
 

@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import importlib.util
 import logging
+import tempfile
 import unittest
+from pathlib import Path
 
 from src.runtime.battlefield_detector import (
     BattlefieldDetectorConfig,
@@ -73,6 +76,8 @@ class BattlefieldDetectorTests(unittest.TestCase):
             river_band_bottom_ratio=0.52,
             grass_band_top_ratio=0.55,
             grass_band_bottom_ratio=0.90,
+            model_path=None,
+            model_input_size=128,
         )
         ok, score = evaluate_battlefield(
             frame_width=w,
@@ -84,6 +89,47 @@ class BattlefieldDetectorTests(unittest.TestCase):
         )
         self.assertTrue(ok)
         self.assertGreaterEqual(score, 0.50)
+
+    @unittest.skipUnless(importlib.util.find_spec("torch"), "torch not installed")
+    def test_model_evaluate_runs_with_checkpoint(self) -> None:
+        import torch
+
+        from src.perception.battlefield_infer import clear_battlefield_runner_cache
+        from src.perception.battlefield_net import BattlefieldScreenNet
+
+        clear_battlefield_runner_cache()
+        net = BattlefieldScreenNet()
+        with tempfile.NamedTemporaryFile(suffix=".pt", delete=False) as tmp:
+            path = Path(tmp.name)
+        try:
+            torch.save({"state_dict": net.state_dict(), "input_size": 64}, path)
+            det = BattlefieldDetectorConfig(
+                method="model",
+                score_threshold=0.01,
+                sample_stride=4,
+                river_band_top_ratio=0.30,
+                river_band_bottom_ratio=0.52,
+                grass_band_top_ratio=0.55,
+                grass_band_bottom_ratio=0.90,
+                model_path=str(path),
+                model_input_size=64,
+            )
+            w, h = 80, 60
+            buf = bytearray([40, 50, 60, 255]) * (w * h)
+            ok, score = evaluate_battlefield(
+                frame_width=w,
+                frame_height=h,
+                pixels_bgra=bytes(buf),
+                viewport=GameViewport(mode="full_frame"),
+                detector=det,
+                logger=logging.getLogger("test"),
+            )
+            self.assertIsInstance(ok, bool)
+            self.assertGreaterEqual(score, 0.0)
+            self.assertLessEqual(score, 1.0)
+        finally:
+            clear_battlefield_runner_cache()
+            path.unlink(missing_ok=True)
 
 
 if __name__ == "__main__":

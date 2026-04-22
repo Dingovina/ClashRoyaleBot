@@ -1,0 +1,3 @@
+# Optional: CNN battlefield detector and training script (scripts/train_battlefield_classifier.py).
+torch>=2.1.0
+Pillow>=9.0

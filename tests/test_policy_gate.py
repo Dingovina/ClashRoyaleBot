@@ -40,6 +40,8 @@ def _config() -> RuntimeConfig:
         battlefield_timeout_behavior="idle",
         foreground_check_enabled=False,
         foreground_title_substrings=("clash royale", "google play games", "google play"),
+        battlefield_model_path=None,
+        battlefield_model_input_size=128,
     )
 
 

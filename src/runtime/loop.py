@@ -78,6 +78,8 @@ class RuntimeLoop:
             river_band_bottom_ratio=self.config.battlefield_river_band_bottom_ratio,
             grass_band_top_ratio=self.config.battlefield_grass_band_top_ratio,
             grass_band_bottom_ratio=self.config.battlefield_grass_band_bottom_ratio,
+            model_path=self.config.battlefield_model_path,
+            model_input_size=self.config.battlefield_model_input_size,
         )
 
         if self.config.battlefield_wait_timeout_ms > 0:
