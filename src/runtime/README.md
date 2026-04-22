@@ -12,6 +12,7 @@ This package contains real-time match execution code.
 ## Sprint 2 additions
 
 - **Match readiness gate:** before the tick loop, the runtime optionally waits on fullscreen capture until the **battlefield CNN** probability crosses `battlefield_score_threshold`, with logs `waiting_for_battlefield` / `battlefield_detected` / `battlefield_wait_timeout`.
+- **Match end (main loop):** after readiness, ticks run until the same CNN reports probability **below** `battlefield_end_score_threshold` for `match_end_confirm_ticks` **consecutive** probes (probes run every `match_end_check_every_n_ticks` ticks when pixels are captured). Then the loop stops with `runtime_finished reason=battlefield_absent`. `battlefield_end_score_threshold` must be **lower** than `battlefield_score_threshold` (hysteresis). **`match_safety_max_ticks`** caps total ticks as a failsafe (`0` = unlimited only when CNN match-end is active). Legacy YAML **`max_ticks`** is read as `match_safety_max_ticks` if the new key is missing.
 - **CNN-only:** there is no heuristic or blend mode. Weights come from `battlefield_model_path` (default `artifacts/battlefield_cnn.pt`). Input tensor size is read from the checkpoint. Layout rectangles come from `battlefield_model_layout_path` (default `configs/screen_layout_reference.yaml`). PyTorch is required when `match_readiness_enabled` is true (`pip install -r requirements-ml.txt`).
 - **No actuation until ready:** while the gate has not passed (or after a timeout with `battlefield_timeout_behavior: idle`), policy decisions are forced to `NO_OP` with reason `match_readiness_not_ready`, so **no card hotkeys and no deploy clicks** are emitted.
 - **Timeouts:** `battlefield_wait_timeout_ms` (use `0` for no wall-clock limit) plus `battlefield_timeout_behavior` `idle` (keep looping with actuation blocked) or `exit_nonzero` (process exits with code **2**).
@@ -38,13 +39,14 @@ This package contains real-time match execution code.
 - `runtime_config.py` — frozen `RuntimeConfig` dataclass.
 - `config_loader.py` — loads `configs/runtime.yaml` via `load_runtime_config(Path)`.
 - `match_readiness.py` — pre-loop wait until the battlefield CNN accepts the capture.
-- `battlefield_evaluate.py` / `battlefield_config.py` — CNN scoring for that wait loop.
+- `match_exit.py` — streak counter for CNN-based match end.
+- `battlefield_evaluate.py` / `battlefield_config.py` — CNN scoring for readiness and raw probability for match end.
 - `src/perception/battlefield_net.py`, `battlefield_roi.py`, `battlefield_infer.py` — classifier and masked bottom-panel tensor path.
 - `foreground_win.py` reads the Windows foreground window title for optional focus gating.
 - `viewport.py` defines `GameViewport` / `AnchorRect`, `crop_playfield_bgra`, and parses `runtime.game_viewport` from YAML.
 - `zones.py` stores 4x3 zone geometry and legality masks.
 - `policy_gate.py` applies no-op/confidence/rate-limit rules.
-- `capture.py` grabs fullscreen frames from the active display.
+- `capture.py` grabs fullscreen frames from the active display; optional PNG dumps under `capture_debug_dir` when `capture_debug_save_enabled` is true.
 - `keyboard_input.py` sends slot hotkeys (`pynput` first, `pyautogui` fallback).
 - `actuation.py` orchestrates hotkey + placement click (`pyautogui`).
 - `candidate_policy.py` provides scripted candidate actions for reliability tests.

@@ -53,10 +53,14 @@ def load_runtime_config(path: Path) -> RuntimeConfig:
         action_confidence_threshold=float(runtime["action_confidence_threshold"]),
         no_op_confidence_threshold=float(runtime["no_op_confidence_threshold"]),
         min_elixir_for_non_urgent_action=float(runtime["min_elixir_for_non_urgent_action"]),
-        max_ticks=int(runtime["max_ticks"]),
+        match_safety_max_ticks=_parse_match_safety_max_ticks(runtime),
+        battlefield_end_score_threshold=float(runtime.get("battlefield_end_score_threshold", 0.42)),
+        match_end_confirm_ticks=max(0, int(runtime.get("match_end_confirm_ticks", 6))),
+        match_end_check_every_n_ticks=max(1, int(runtime.get("match_end_check_every_n_ticks", 2))),
         zones=zones,
         spell_cards=set(card_types.get("spell_cards", [])),
         capture_enabled=bool(runtime.get("capture_enabled", True)),
+        capture_debug_save_enabled=bool(runtime.get("capture_debug_save_enabled", True)),
         capture_debug_dir=runtime.get("capture_debug_dir"),
         capture_every_n_ticks=max(0, int(runtime.get("capture_every_n_ticks", 0))),
         actuation_enabled=bool(runtime.get("actuation_enabled", False)),
@@ -79,6 +83,15 @@ def load_runtime_config(path: Path) -> RuntimeConfig:
     )
     _validate_runtime_config(cfg)
     return cfg
+
+
+def _parse_match_safety_max_ticks(runtime: dict[str, Any]) -> int:
+    """Hard cap on main-loop ticks. Legacy YAML key ``max_ticks`` maps here if ``match_safety_max_ticks`` is absent."""
+    if "match_safety_max_ticks" in runtime:
+        return max(0, int(runtime["match_safety_max_ticks"]))
+    if "max_ticks" in runtime:
+        return max(0, int(runtime["max_ticks"]))
+    return 7200
 
 
 def _reject_legacy_battlefield_detector(runtime: dict[str, Any]) -> None:
@@ -127,31 +140,70 @@ def _validate_runtime_config(cfg: RuntimeConfig) -> None:
     if cfg.match_readiness_enabled and not cfg.capture_enabled:
         raise ValueError("match_readiness_enabled requires capture_enabled to be true")
 
-    if not cfg.match_readiness_enabled:
+    if cfg.match_readiness_enabled:
+        if not cfg.battlefield_model_path:
+            raise ValueError(
+                "match_readiness_enabled requires battlefield_model_path (or rely on the default path)"
+            )
+
+        mp = Path(cfg.battlefield_model_path)
+        if not mp.is_file():
+            if _is_default_battlefield_checkpoint(mp):
+                lead = (
+                    f"Missing default battlefield classifier weights: {DEFAULT_BATTLEFIELD_CHECKPOINT} "
+                    f"(resolved as {mp.resolve()}). Create this file by training the model."
+                )
+            else:
+                lead = f"battlefield_model_path does not exist or is not a file: {mp}"
+            raise ValueError(f"{lead}\n\n{TRAIN_BATTLEFIELD_CLASSIFIER_HELP}")
+
+        lp = Path(cfg.battlefield_model_layout_path)
+        if not lp.is_file():
+            raise ValueError(f"battlefield_model_layout_path does not exist or is not a file: {lp}")
+
+        if not _torch_available():
+            raise ValueError(
+                "PyTorch is required for match readiness (battlefield CNN). "
+                "Install with: pip install -r requirements-ml.txt"
+            )
+
+    _validate_match_exit(cfg)
+
+
+def _validate_match_exit(cfg: RuntimeConfig) -> None:
+    if cfg.match_end_confirm_ticks == 0:
+        if cfg.match_safety_max_ticks <= 0:
+            raise ValueError(
+                "match_end_confirm_ticks=0 disables CNN-based match end; "
+                "set match_safety_max_ticks > 0 so the runtime cannot run unbounded."
+            )
         return
 
+    if not cfg.capture_enabled:
+        raise ValueError("match_end_confirm_ticks > 0 requires capture_enabled")
     if not cfg.battlefield_model_path:
-        raise ValueError("match_readiness_enabled requires battlefield_model_path (or rely on the default path)")
-
+        raise ValueError(
+            "match_end_confirm_ticks > 0 requires battlefield_model_path (same CNN as match readiness)"
+        )
     mp = Path(cfg.battlefield_model_path)
     if not mp.is_file():
-        if _is_default_battlefield_checkpoint(mp):
-            lead = (
-                f"Missing default battlefield classifier weights: {DEFAULT_BATTLEFIELD_CHECKPOINT} "
-                f"(resolved as {mp.resolve()}). Create this file by training the model."
-            )
-        else:
-            lead = f"battlefield_model_path does not exist or is not a file: {mp}"
-        raise ValueError(f"{lead}\n\n{TRAIN_BATTLEFIELD_CLASSIFIER_HELP}")
-
+        raise ValueError(f"battlefield_model_path does not exist or is not a file: {mp}")
     lp = Path(cfg.battlefield_model_layout_path)
     if not lp.is_file():
         raise ValueError(f"battlefield_model_layout_path does not exist or is not a file: {lp}")
-
     if not _torch_available():
         raise ValueError(
-            "PyTorch is required for match readiness (battlefield CNN). "
-            "Install with: pip install -r requirements-ml.txt"
+            "PyTorch is required for CNN match-end detection. Install with: pip install -r requirements-ml.txt"
+        )
+    if cfg.match_end_check_every_n_ticks < 1:
+        raise ValueError("match_end_check_every_n_ticks must be >= 1")
+    et = cfg.battlefield_end_score_threshold
+    if not 0.0 < et < 1.0:
+        raise ValueError("battlefield_end_score_threshold must be in (0, 1)")
+    if et >= cfg.battlefield_score_threshold:
+        raise ValueError(
+            "battlefield_end_score_threshold must be less than battlefield_score_threshold "
+            "(start gate vs end-of-match hysteresis)."
         )
 
 

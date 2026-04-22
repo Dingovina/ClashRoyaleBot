@@ -15,10 +15,14 @@ class RuntimeConfig:
     action_confidence_threshold: float
     no_op_confidence_threshold: float
     min_elixir_for_non_urgent_action: float
-    max_ticks: int
+    match_safety_max_ticks: int
+    battlefield_end_score_threshold: float
+    match_end_confirm_ticks: int
+    match_end_check_every_n_ticks: int
     zones: dict[int, tuple[float, float]]
     spell_cards: set[str]
     capture_enabled: bool
+    capture_debug_save_enabled: bool
     capture_debug_dir: str | None
     capture_every_n_ticks: int
     actuation_enabled: bool

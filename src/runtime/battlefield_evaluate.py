@@ -33,6 +33,34 @@ def evaluate_battlefield(
         return (False, 0.0)
 
 
+def infer_battlefield_probability(
+    *,
+    frame_width: int,
+    frame_height: int,
+    pixels_bgra: bytes | None,
+    viewport: GameViewport,
+    model_path: str,
+    model_layout_path: str,
+    logger: logging.Logger,
+) -> float:
+    """
+    Raw CNN probability of battlefield / in-match screen. On failure returns 1.0 so the runtime
+    does not treat transient errors as match end.
+    """
+    if not pixels_bgra:
+        return 0.0
+    detector = BattlefieldModelConfig(
+        score_threshold=1.0,
+        model_path=model_path,
+        model_layout_path=model_layout_path,
+    )
+    try:
+        return _model_probability(frame_width, frame_height, pixels_bgra, viewport, detector, logger)
+    except Exception as exc:
+        logger.warning("battlefield_probability_infer_failed err=%s", exc)
+        return 1.0
+
+
 def _model_probability(
     frame_width: int,
     frame_height: int,
