@@ -25,7 +25,12 @@ This package contains real-time match execution code.
 - `game_viewport` maps normalized board anchors into the real on-screen playfield (for letterboxed / centered portrait windows).
 - `game_viewport.anchor_rect` maps anchors into a sub-rectangle of the client window (for example to exclude the bottom hand / elixir bar).
 
+## Screen layout reference (Sprint 3+ perception)
+- `configs/screen_layout_reference.yaml` stores **pixel rectangles** in fullscreen capture space for the bottom hand panel, four hand slots, next-card peek, and elixir bar (plus `tick_width_px` per elixir pip). Tuned for a centered ~608×1080 client on a 1920×1080-class capture; duplicate and edit if your geometry differs.
+- `screen_layout.py` exposes `load_screen_layout_reference(Path)` and frozen `PixelRect` / `ScreenLayoutReference` for typed access in future perception code.
+
 ## Current modules
+- `screen_layout.py` loads annotated HUD regions from YAML for future state extraction.
 - `battlefield_detector.py` implements heuristic and/or CNN-based battlefield scoring for the readiness wait loop.
 - `src/perception/battlefield_net.py` and `src/perception/battlefield_infer.py` define the small classifier and viewport crop inference (optional dependency: see `requirements-ml.txt`).
 - `foreground_win.py` reads the Windows foreground window title for optional focus gating.

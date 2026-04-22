@@ -19,6 +19,7 @@ The repository is early-stage. Over time it will grow architecture notes, traini
 | **Runtime package (modules, shipped behavior)** | `src/runtime/README.md` |
 | **Runtime configuration** | `configs/runtime.yaml` |
 | **Battlefield CNN (train / optional runtime)** | `scripts/train_battlefield_classifier.py`, `requirements-ml.txt` |
+| **HUD pixel layout (hand / elixir reference)** | `configs/screen_layout_reference.yaml`, `src/runtime/screen_layout.py` |
 | **Docker usage** | `docs/docker-basics.md` |
 
 ---

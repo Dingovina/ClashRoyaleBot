@@ -1,0 +1,56 @@
+# Reference screen layout for detailed perception (hand, elixir, etc.).
+# All coordinates are in fullscreen-capture pixel space (origin top-left), inclusive LTRB
+# unless noted. Recorded for a letterboxed portrait Clash Royale client on a ~1920×1080
+# capture (game strip width ≈608 px, x0 ≈ 656).
+#
+# If your resolution or window position differs, duplicate this file, adjust numbers,
+# and point code at the new path once loaders consume this file.
+
+schema_version: 1
+id: clash_gpg_letterbox_1080p_reference
+
+reference_frame:
+  width: 1920
+  height: 1080
+  notes: "Typical fullscreen width; actual captures may be 1919×1079 — re-validate corners if needed."
+
+bottom_panel:
+  left: 656
+  top: 871
+  right: 1263
+  bottom: 1079
+
+hand_cards:
+  - slot: 1
+    left: 792
+    top: 895
+    right: 900
+    bottom: 1028
+  - slot: 2
+    left: 906
+    top: 895
+    right: 1013
+    bottom: 1028
+  - slot: 3
+    left: 1020
+    top: 895
+    right: 1127
+    bottom: 1028
+  - slot: 4
+    left: 1134
+    top: 895
+    right: 1241
+    bottom: 1028
+
+next_card:
+  left: 689
+  top: 1006
+  right: 737
+  bottom: 1066
+
+elixir_bar:
+  left: 818
+  top: 1041
+  right: 1240
+  bottom: 1067
+  tick_width_px: 42
