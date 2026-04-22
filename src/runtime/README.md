@@ -18,6 +18,7 @@ This package contains real-time match execution code.
 - `game_viewport.anchor_rect` maps anchors into a sub-rectangle of the client window (for example to exclude the bottom hand / elixir bar).
 
 ## Current modules
+- `viewport.py` defines `GameViewport` / `AnchorRect` and parses `runtime.game_viewport` from YAML.
 - `config.py` loads runtime settings from `configs/runtime.yaml`.
 - `zones.py` stores 4x3 zone geometry and legality masks.
 - `policy_gate.py` applies no-op/confidence/rate-limit rules.

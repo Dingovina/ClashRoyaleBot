@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import unittest
 
-from src.runtime.config import GameViewport, RuntimeConfig
+from src.runtime.config import RuntimeConfig
+from src.runtime.viewport import GameViewport
 from src.runtime.policy_gate import PolicyGate
 from src.runtime.types import CandidateAction, RuntimeState
 from src.runtime.zones import build_default_zone_map

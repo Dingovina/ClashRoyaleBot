@@ -3,7 +3,7 @@ from __future__ import annotations
 import unittest
 
 from src.runtime.actuation import InputActuator, resolve_card_hotkey
-from src.runtime.config import AnchorRect, GameViewport
+from src.runtime.viewport import AnchorRect, GameViewport
 from src.runtime.types import ActionDecision
 from src.runtime.zones import build_default_zone_map
 

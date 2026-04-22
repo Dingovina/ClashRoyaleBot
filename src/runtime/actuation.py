@@ -4,7 +4,7 @@ import logging
 import time
 from dataclasses import dataclass
 
-from src.runtime.config import GameViewport
+from src.runtime.viewport import GameViewport
 from src.runtime.types import ActionDecision
 from src.runtime.zones import ZoneMap
 

@@ -96,3 +96,35 @@ Use this file to record high-impact technical decisions.
 - Alternatives considered:
   - Single threshold only
   - Aggressive low-threshold action policy
+
+---
+
+### DEC-0005: Milestone — Sprint 0 and Sprint 1 runtime shell
+- Status: Accepted
+- Date: 2026-04-23
+- Context:
+  - Need a reproducible train/runtime split and a safe real-time loop before perception and learning land.
+- Decision:
+  - Treat Sprint 0–1 as **closed** from a planning-doc perspective: repository layout, Docker train/runtime images and compose, YAML-driven `RuntimeConfig`, fixed **500 ms** tick loop with mock/scripted candidate policy, **12-zone** anchors with unit/spell legality masks, **policy gate** (confidence bands, elixir guard, global rate limit), **mss** fullscreen capture with optional frame dumps, **game viewport** (centered strip + `anchor_rect` for hand bar), **actuation** (slot hotkeys via **pynput** with **pyautogui** fallback, click placement, configurable delay after hotkey), structured **`action_attempt`** logging, and **unit tests** for gate and actuation mapping.
+- Consequences:
+  - `ROADMAP.md` holds **forward plans only**; this entry is the milestone record for shipped Sprint 0–1 scope.
+  - Operators must match in-game hotkeys and viewport numbers in `configs/runtime.yaml` (including English keyboard layout where required).
+- Alternatives considered:
+  - Keep sprint checklists inside `ROADMAP.md` indefinitely (rejected: splits “plan” vs “history”).
+
+---
+
+### DEC-0006: Documentation split — roadmap vs README vs decisions
+- Status: Accepted
+- Date: 2026-04-23
+- Context:
+  - `ROADMAP.md` mixed locked context, architecture narrative, and completed sprint checklists, which obscured upcoming work.
+- Decision:
+  - **`ROADMAP.md`:** upcoming tasks and sprint exit criteria **only** (unchecked items).
+  - **`README.md`:** goals, constraints, scope summary, architecture direction, and an **implementation status** pointer to ADRs and `src/runtime/README.md`.
+  - **`DECISIONS.md`:** ADRs and milestone records (e.g. DEC-0005).
+- Consequences:
+  - Less duplication; clearer onboarding for contributors.
+  - Requires discipline: on ship, update `DECISIONS.md` and README status, not the roadmap checklist.
+- Alternatives considered:
+  - Single living `ROADMAP.md` with `[x]` sections (rejected per documentation split).

@@ -4,6 +4,7 @@ import logging
 import time
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -27,7 +28,7 @@ class FullscreenCapture:
         start = time.perf_counter()
         try:
             import mss
-            import mss.tools
+            import mss.tools as mss_tools
         except ModuleNotFoundError:
             latency = int((time.perf_counter() - start) * 1000)
             self.logger.warning("capture_unavailable reason=mss_not_installed")
@@ -46,6 +47,7 @@ class FullscreenCapture:
                 tick_id=tick_id,
                 rgb=shot.rgb,
                 size=(shot.width, shot.height),
+                mss_tools=mss_tools,
             )
 
         latency = int((time.perf_counter() - start) * 1000)
@@ -62,14 +64,13 @@ class FullscreenCapture:
         tick_id: int,
         rgb: bytes,
         size: tuple[int, int],
+        mss_tools: Any,
     ) -> str | None:
         if not self.debug_dir or self.capture_every_n_ticks <= 0:
             return None
         if tick_id % self.capture_every_n_ticks != 0:
             return None
 
-        import mss.tools
-
         file_path = self.debug_dir / f"frame_{tick_id:05d}.png"
-        mss.tools.to_png(rgb, size, output=str(file_path))
+        mss_tools.to_png(rgb, size, output=str(file_path))
         return str(file_path)
