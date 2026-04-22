@@ -6,5 +6,7 @@ __pycache__/
 # Local debug frame dumps from runtime capture
 data/raw/frame_*.png
 
-# Trained perception weights (generate with scripts/train_battlefield_classifier.py)
-artifacts/
+# Generated files under artifacts/ (except the small committed default checkpoint).
+artifacts/*
+!artifacts/.gitkeep
+!artifacts/battlefield_cnn.pt
