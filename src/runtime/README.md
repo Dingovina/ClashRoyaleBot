@@ -32,7 +32,7 @@ This package contains real-time match execution code.
 ## Current modules
 - `screen_layout.py` loads annotated HUD regions from YAML for future state extraction.
 - `battlefield_detector.py` implements heuristic and/or CNN-based battlefield scoring for the readiness wait loop.
-- `src/perception/battlefield_net.py`, `battlefield_roi.py`, and `battlefield_infer.py` define the classifier and masked bottom-panel tensor path (optional dependency: see `requirements-ml.txt`).
+- `src/perception/battlefield_net.py`, `battlefield_roi.py`, and `battlefield_infer.py` define the classifier and masked bottom-panel tensor path (optional dependency: see `requirements-ml.txt`). After training, run ``python scripts/eval_battlefield_classifier.py --checkpoint …`` to score all labeled PNGs in ``data/battlefield_test/``.
 - `foreground_win.py` reads the Windows foreground window title for optional focus gating.
 - `viewport.py` defines `GameViewport` / `AnchorRect` and parses `runtime.game_viewport` from YAML.
 - `config.py` loads runtime settings from `configs/runtime.yaml`.
