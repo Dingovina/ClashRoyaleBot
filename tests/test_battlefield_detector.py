@@ -7,41 +7,12 @@ import unittest
 from pathlib import Path
 
 from src.perception.battlefield_infer import clear_battlefield_runner_cache
-
-from src.perception.battlefield_heuristic import score_battlefield_heuristic_bgra
-from src.runtime.battlefield_config import BattlefieldDetectorConfig
+from src.runtime.battlefield_config import BattlefieldModelConfig
 from src.runtime.battlefield_evaluate import evaluate_battlefield
 from src.runtime.viewport import AnchorRect, GameViewport, crop_playfield_bgra
 
 
-class BattlefieldDetectorTests(unittest.TestCase):
-    def test_heuristic_high_score_on_synthetic_arena_colors(self) -> None:
-        w, h = 160, 120
-        buf = bytearray([128, 128, 128, 255]) * (w * h)
-        # River band rows 36..55 (~0.30..0.52): blue-dominant BGRA.
-        for y in range(36, 56):
-            for x in range(0, w, 2):
-                i = (y * w + x) * 4
-                buf[i : i + 4] = bytes([200, 90, 40, 255])
-        # Grass band rows 70..105 (~0.55..0.90).
-        for y in range(70, 106):
-            for x in range(0, w, 2):
-                i = (y * w + x) * 4
-                buf[i : i + 4] = bytes([60, 190, 70, 255])
-        roi = bytes(buf)
-        score = score_battlefield_heuristic_bgra(
-            w,
-            h,
-            roi,
-            sample_stride=2,
-            river_top_ratio=0.30,
-            river_bottom_ratio=0.52,
-            grass_top_ratio=0.55,
-            grass_bottom_ratio=0.90,
-            logger=None,
-        )
-        self.assertGreater(score, 0.2)
-
+class BattlefieldModelTests(unittest.TestCase):
     def test_crop_playfield_respects_viewport_and_anchor_rect(self) -> None:
         fw, fh = 200, 100
         full = bytearray([10, 20, 30, 255]) * (fw * fh)
@@ -56,42 +27,8 @@ class BattlefieldDetectorTests(unittest.TestCase):
         self.assertEqual(rh, 50)
         self.assertEqual(len(roi), rw * rh * 4)
 
-    def test_evaluate_battlefield_respects_threshold(self) -> None:
-        w, h = 120, 100
-        buf = bytearray([128, 128, 128, 255]) * (w * h)
-        for y in range(30, 52):
-            for x in range(0, w, 2):
-                i = (y * w + x) * 4
-                buf[i : i + 4] = bytes([200, 90, 40, 255])
-        for y in range(56, 90):
-            for x in range(0, w, 2):
-                i = (y * w + x) * 4
-                buf[i : i + 4] = bytes([60, 190, 70, 255])
-        det = BattlefieldDetectorConfig(
-            method="heuristic",
-            score_threshold=0.50,
-            sample_stride=2,
-            river_band_top_ratio=0.30,
-            river_band_bottom_ratio=0.52,
-            grass_band_top_ratio=0.55,
-            grass_band_bottom_ratio=0.90,
-            model_path=None,
-            model_input_size=128,
-            model_layout_path="configs/screen_layout_reference.yaml",
-        )
-        ok, score = evaluate_battlefield(
-            frame_width=w,
-            frame_height=h,
-            pixels_bgra=bytes(buf),
-            viewport=GameViewport(mode="full_frame"),
-            detector=det,
-            logger=logging.getLogger("test"),
-        )
-        self.assertTrue(ok)
-        self.assertGreaterEqual(score, 0.50)
-
     @unittest.skipUnless(importlib.util.find_spec("torch"), "torch not installed")
-    def test_model_evaluate_runs_with_checkpoint(self) -> None:
+    def test_evaluate_battlefield_model_runs_with_checkpoint(self) -> None:
         import torch
 
         from src.perception.battlefield_net import BattlefieldScreenNet
@@ -103,16 +40,9 @@ class BattlefieldDetectorTests(unittest.TestCase):
         try:
             torch.save({"state_dict": net.state_dict(), "input_size": 64}, path)
             layout_yaml = Path(__file__).resolve().parents[1] / "configs" / "screen_layout_reference.yaml"
-            det = BattlefieldDetectorConfig(
-                method="model",
+            det = BattlefieldModelConfig(
                 score_threshold=0.01,
-                sample_stride=4,
-                river_band_top_ratio=0.30,
-                river_band_bottom_ratio=0.52,
-                grass_band_top_ratio=0.55,
-                grass_band_bottom_ratio=0.90,
                 model_path=str(path),
-                model_input_size=64,
                 model_layout_path=str(layout_yaml),
             )
             w, h = 80, 60

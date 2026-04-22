@@ -8,6 +8,19 @@ import yaml
 from src.runtime.runtime_config import BattlefieldTimeoutBehavior, RuntimeConfig
 from src.runtime.viewport import parse_game_viewport
 
+DEFAULT_BATTLEFIELD_CHECKPOINT = "artifacts/battlefield_cnn.pt"
+
+TRAIN_BATTLEFIELD_CLASSIFIER_HELP = (
+    "Install ML dependencies: pip install -r requirements-ml.txt\n"
+    "Train from labeled PNGs (true_*.png = in-match, false_*.png = not), run from repo root:\n"
+    "  python scripts/train_battlefield_classifier.py \\\n"
+    "    --data-dir data/battlefield_test \\\n"
+    "    --layout-yaml configs/screen_layout_reference.yaml \\\n"
+    "    --out artifacts/battlefield_cnn.pt\n"
+    "Optionally set --input-size to match your checkpoint (default 128). "
+    "Then set runtime.battlefield_model_path in configs/runtime.yaml if the file is not at the default path."
+)
+
 
 def load_runtime_config(path: Path) -> RuntimeConfig:
     data = _load_yaml(path)
@@ -28,6 +41,13 @@ def load_runtime_config(path: Path) -> RuntimeConfig:
         for zone_id, anchor in board["zones"].items()
     }
 
+    match_readiness_enabled = bool(runtime.get("match_readiness_enabled", True))
+    model_path = _parse_optional_path(runtime.get("battlefield_model_path"))
+    if match_readiness_enabled and not model_path:
+        model_path = DEFAULT_BATTLEFIELD_CHECKPOINT
+
+    _reject_legacy_battlefield_detector(runtime)
+
     cfg = RuntimeConfig(
         tick_interval_ms=int(runtime["tick_interval_ms"]),
         action_rate_limit_ms=int(runtime["action_rate_limit_ms"]),
@@ -47,30 +67,32 @@ def load_runtime_config(path: Path) -> RuntimeConfig:
         ),
         actuation_card_hotkeys=_parse_actuation_card_hotkeys(runtime),
         game_viewport=parse_game_viewport(runtime),
-        match_readiness_enabled=bool(runtime.get("match_readiness_enabled", True)),
-        battlefield_detector=_parse_battlefield_detector(runtime),
-        battlefield_score_threshold=float(runtime.get("battlefield_score_threshold", 0.14)),
-        battlefield_sample_stride=max(1, int(runtime.get("battlefield_sample_stride", 10))),
-        battlefield_river_band_top_ratio=float(runtime.get("battlefield_river_band_top_ratio", 0.30)),
-        battlefield_river_band_bottom_ratio=float(
-            runtime.get("battlefield_river_band_bottom_ratio", 0.52)
-        ),
-        battlefield_grass_band_top_ratio=float(runtime.get("battlefield_grass_band_top_ratio", 0.55)),
-        battlefield_grass_band_bottom_ratio=float(
-            runtime.get("battlefield_grass_band_bottom_ratio", 0.90)
-        ),
+        match_readiness_enabled=match_readiness_enabled,
+        battlefield_score_threshold=float(runtime.get("battlefield_score_threshold", 0.65)),
         battlefield_wait_timeout_ms=max(0, int(runtime.get("battlefield_wait_timeout_ms", 120000))),
         battlefield_timeout_behavior=_parse_battlefield_timeout_behavior(
             runtime.get("battlefield_timeout_behavior", "idle")
         ),
         foreground_check_enabled=bool(runtime.get("foreground_check_enabled", False)),
         foreground_title_substrings=_parse_foreground_title_substrings(runtime),
-        battlefield_model_path=_parse_optional_path(runtime.get("battlefield_model_path")),
-        battlefield_model_input_size=max(32, int(runtime.get("battlefield_model_input_size", 128))),
+        battlefield_model_path=model_path,
         battlefield_model_layout_path=_parse_battlefield_model_layout_path(runtime),
     )
     _validate_runtime_config(cfg)
     return cfg
+
+
+def _reject_legacy_battlefield_detector(runtime: dict[str, Any]) -> None:
+    if "battlefield_detector" not in runtime:
+        return
+    raw = str(runtime.get("battlefield_detector", "")).lower().strip()
+    if raw in ("", "model"):
+        return
+    raise ValueError(
+        f"runtime.battlefield_detector={raw!r} is no longer supported. "
+        "Match readiness uses the battlefield CNN only; remove battlefield_detector from configs/runtime.yaml "
+        "(or set it to model)."
+    )
 
 
 def _torch_available() -> bool:
@@ -97,33 +119,41 @@ def _parse_battlefield_model_layout_path(runtime: dict[str, Any]) -> str:
     return "configs/screen_layout_reference.yaml"
 
 
+def _is_default_battlefield_checkpoint(path: Path) -> bool:
+    norm = path.as_posix().replace("\\", "/")
+    return norm == DEFAULT_BATTLEFIELD_CHECKPOINT or norm.endswith("/artifacts/battlefield_cnn.pt")
+
+
 def _validate_runtime_config(cfg: RuntimeConfig) -> None:
     if cfg.match_readiness_enabled and not cfg.capture_enabled:
         raise ValueError("match_readiness_enabled requires capture_enabled to be true")
-    if cfg.battlefield_river_band_top_ratio >= cfg.battlefield_river_band_bottom_ratio:
-        raise ValueError("battlefield river band top ratio must be less than bottom ratio")
-    if cfg.battlefield_grass_band_top_ratio >= cfg.battlefield_grass_band_bottom_ratio:
-        raise ValueError("battlefield grass band top ratio must be less than bottom ratio")
-    if cfg.battlefield_detector in ("model", "blend"):
-        if not cfg.battlefield_model_path:
-            raise ValueError("battlefield_model_path is required when battlefield_detector is model or blend")
-        mp = Path(cfg.battlefield_model_path)
-        if not mp.is_file():
-            raise ValueError(f"battlefield_model_path does not exist or is not a file: {mp}")
-        lp = Path(cfg.battlefield_model_layout_path)
-        if not lp.is_file():
-            raise ValueError(f"battlefield_model_layout_path does not exist or is not a file: {lp}")
-        if not _torch_available():
-            raise ValueError(
-                "PyTorch is required for battlefield_detector model/blend; install with: pip install -r requirements-ml.txt"
+
+    if not cfg.match_readiness_enabled:
+        return
+
+    if not cfg.battlefield_model_path:
+        raise ValueError("match_readiness_enabled requires battlefield_model_path (or rely on the default path)")
+
+    mp = Path(cfg.battlefield_model_path)
+    if not mp.is_file():
+        if _is_default_battlefield_checkpoint(mp):
+            lead = (
+                f"Missing default battlefield classifier weights: {DEFAULT_BATTLEFIELD_CHECKPOINT} "
+                f"(resolved as {mp.resolve()}). Create this file by training the model."
             )
+        else:
+            lead = f"battlefield_model_path does not exist or is not a file: {mp}"
+        raise ValueError(f"{lead}\n\n{TRAIN_BATTLEFIELD_CLASSIFIER_HELP}")
 
+    lp = Path(cfg.battlefield_model_layout_path)
+    if not lp.is_file():
+        raise ValueError(f"battlefield_model_layout_path does not exist or is not a file: {lp}")
 
-def _parse_battlefield_detector(runtime: dict[str, Any]) -> str:
-    raw = str(runtime.get("battlefield_detector", "heuristic")).lower().strip()
-    if raw not in ("heuristic", "model", "blend"):
-        raise ValueError(f"runtime.battlefield_detector must be heuristic, model, or blend, got {raw!r}")
-    return raw
+    if not _torch_available():
+        raise ValueError(
+            "PyTorch is required for match readiness (battlefield CNN). "
+            "Install with: pip install -r requirements-ml.txt"
+        )
 
 
 def _parse_battlefield_timeout_behavior(raw: Any) -> BattlefieldTimeoutBehavior:

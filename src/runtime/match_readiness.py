@@ -4,7 +4,7 @@ import logging
 import sys
 import time
 
-from src.runtime.battlefield_config import BattlefieldDetectorConfig
+from src.runtime.battlefield_config import BattlefieldModelConfig
 from src.runtime.battlefield_evaluate import evaluate_battlefield
 from src.runtime.capture import FullscreenCapture
 from src.runtime.foreground_win import foreground_matches, foreground_title_lower
@@ -17,23 +17,19 @@ def wait_for_match_readiness(
     capture: FullscreenCapture,
 ) -> tuple[int, bool]:
     """
-    Optionally block until the battlefield detector reports a match-ready frame.
+    Optionally block until the battlefield CNN reports a match-ready frame.
 
     Returns ``(exit_code, match_ready)``. ``exit_code`` is non-zero when configured to exit on timeout.
     """
     if not config.match_readiness_enabled:
         return (0, True)
 
-    detector = BattlefieldDetectorConfig(
-        method=config.battlefield_detector,
+    if not config.battlefield_model_path:
+        raise RuntimeError("match_readiness_enabled but battlefield_model_path is unset")
+
+    detector = BattlefieldModelConfig(
         score_threshold=config.battlefield_score_threshold,
-        sample_stride=config.battlefield_sample_stride,
-        river_band_top_ratio=config.battlefield_river_band_top_ratio,
-        river_band_bottom_ratio=config.battlefield_river_band_bottom_ratio,
-        grass_band_top_ratio=config.battlefield_grass_band_top_ratio,
-        grass_band_bottom_ratio=config.battlefield_grass_band_bottom_ratio,
         model_path=config.battlefield_model_path,
-        model_input_size=config.battlefield_model_input_size,
         model_layout_path=config.battlefield_model_layout_path,
     )
 
