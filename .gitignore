@@ -2,3 +2,6 @@
 __pycache__/
 *.pyc
 .venv/
+
+# Local debug frame dumps from runtime capture
+data/raw/frame_*.png

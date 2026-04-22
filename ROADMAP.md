@@ -12,7 +12,7 @@ This file is the living project plan and should be updated after each important 
 - No need to support minimized or covered game window.
 
 ### Allowed agent actions
-- Select card by keyboard keys `1`, `2`, `3`, `4`.
+- Select card by configurable keyboard hotkeys (default digits `1`–`4`; project config uses `Q`/`W`/`E`/`R` when set in `configs/runtime.yaml`).
 - Select deployment position by mouse click.
 - No human-like delay simulation required in v1.
 
@@ -145,10 +145,10 @@ These thresholds are defaults and can be tuned after first evaluation runs.
 - [x] Runtime skeleton can run without crashing.
 
 ## Sprint 1 (Day 3-5) - Observe + Act Reliability
-- Implement fullscreen capture for Google Play Games.
-- Implement keyboard card selection (`1-4`) and mouse placement click.
-- Add strict legality and global 1000 ms action rate-limit guards.
-- Add structured logging for every action attempt.
+- [x] Implement fullscreen capture for Google Play Games.
+- [x] Implement keyboard card selection (configurable hotkeys) and mouse placement click.
+- [x] Add strict legality and global 1000 ms action rate-limit guards.
+- [x] Add structured logging for every action attempt.
 
 ### Exit criteria
 - Agent can execute scripted legal action sequences in live match context.

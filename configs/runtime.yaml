@@ -4,7 +4,33 @@ runtime:
   action_confidence_threshold: 0.70
   no_op_confidence_threshold: 0.55
   min_elixir_for_non_urgent_action: 3.0
-  max_ticks: 20
+  max_ticks: 100
+  capture_enabled: true
+  capture_debug_dir: data/raw
+  capture_every_n_ticks: 5
+  actuation_enabled: true
+  actuation_dry_run: false
+  # Wait after card hotkey before arena click (many UIs need a short gap).
+  actuation_select_to_click_delay_ms: 120
+  # In-game hotkeys for the four hand slots (left to right). Match Clash Royale settings.
+  actuation_card_hotkeys:
+    - "1"
+    - "2"
+    - "3"
+    - "4"
+  # Clash in Google Play Games: portrait playfield centered on a wide monitor.
+  # Anchors in board.zones are normalized within this rectangle (not the full capture).
+  game_viewport:
+    mode: centered_strip
+    width: 608
+    height: 1080
+    # Board anchors (0..1) map inside this rectangle of the game client, not the hand bar at the bottom.
+    # Tune with a screenshot: top_ratio skips top HUD; height_ratio ends above the card row.
+    anchor_rect:
+      left_ratio: 0.0
+      top_ratio: 0.08
+      width_ratio: 1.0
+      height_ratio: 0.68
 
 board:
   rows: 4

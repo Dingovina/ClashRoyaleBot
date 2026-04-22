@@ -1,1 +1,4 @@
 PyYAML>=6.0
+mss>=10.1.0
+pyautogui>=0.9.54
+pynput>=1.7.6

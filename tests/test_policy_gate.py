@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import unittest
 
-from src.runtime.config import RuntimeConfig
+from src.runtime.config import GameViewport, RuntimeConfig
 from src.runtime.policy_gate import PolicyGate
 from src.runtime.types import CandidateAction, RuntimeState
 from src.runtime.zones import build_default_zone_map
@@ -19,6 +19,14 @@ def _config() -> RuntimeConfig:
         max_ticks=10,
         zones=anchors,
         spell_cards={"fireball"},
+        capture_enabled=False,
+        capture_debug_dir=None,
+        capture_every_n_ticks=0,
+        actuation_enabled=False,
+        actuation_dry_run=True,
+        actuation_select_to_click_delay_ms=0,
+        actuation_card_hotkeys=("1", "2", "3", "4"),
+        game_viewport=GameViewport(mode="full_frame"),
     )
 
 
