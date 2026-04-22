@@ -28,6 +28,21 @@ def _config() -> RuntimeConfig:
         actuation_select_to_click_delay_ms=0,
         actuation_card_hotkeys=("1", "2", "3", "4"),
         game_viewport=GameViewport(mode="full_frame"),
+        match_readiness_enabled=False,
+        battlefield_detector="heuristic",
+        battlefield_score_threshold=0.14,
+        battlefield_sample_stride=10,
+        battlefield_river_band_top_ratio=0.30,
+        battlefield_river_band_bottom_ratio=0.52,
+        battlefield_grass_band_top_ratio=0.55,
+        battlefield_grass_band_bottom_ratio=0.90,
+        battlefield_wait_timeout_ms=120000,
+        battlefield_timeout_behavior="idle",
+        foreground_check_enabled=False,
+        foreground_title_substrings=("clash royale", "google play games", "google play"),
+        battlefield_model_path=None,
+        battlefield_model_input_size=128,
+        battlefield_model_layout_path="configs/screen_layout_reference.yaml",
     )
 
 

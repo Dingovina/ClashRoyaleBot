@@ -18,6 +18,31 @@ runtime:
     - "2"
     - "3"
     - "4"
+  # Sprint 2: no deploy/hotkeys until the arena is visible (see src/runtime/README.md).
+  match_readiness_enabled: true
+  # heuristic | model | blend (model needs PyTorch + battlefield_model_path + trained .pt).
+  battlefield_detector: model
+  # Probability (model / blend) or soft score (heuristic) threshold.
+  battlefield_score_threshold: 0.99
+  # Trained weights from: python scripts/train_battlefield_classifier.py
+  battlefield_model_path: artifacts/battlefield_cnn.pt
+  battlefield_model_input_size: 128
+  # HUD layout for CNN ROI (bottom panel with cards/elixir masked out).
+  battlefield_model_layout_path: configs/screen_layout_reference.yaml
+  battlefield_sample_stride: 10
+  battlefield_river_band_top_ratio: 0.30
+  battlefield_river_band_bottom_ratio: 0.52
+  battlefield_grass_band_top_ratio: 0.55
+  battlefield_grass_band_bottom_ratio: 0.90
+  # 0 = wait indefinitely; otherwise wall-clock limit for the pre-match wait loop.
+  battlefield_wait_timeout_ms: 120000
+  # idle: run ticks but force NO_OP actuation; exit_nonzero: process exits with code 2.
+  battlefield_timeout_behavior: idle
+  foreground_check_enabled: false
+  foreground_title_substrings:
+    - "clash royale"
+    - "google play games"
+    - "google play"
   # Clash in Google Play Games: portrait playfield centered on a wide monitor.
   # Anchors in board.zones are normalized within this rectangle (not the full capture).
   game_viewport:

@@ -14,6 +14,8 @@ class FrameObservation:
     capture_latency_ms: int
     source: str
     screenshot_path: str | None = None
+    # Raw BGRA from mss (`width * height * 4`) when `include_pixels=True` on capture.
+    pixels_bgra: bytes | None = None
 
 
 class FullscreenCapture:
@@ -24,7 +26,7 @@ class FullscreenCapture:
         if self.debug_dir:
             self.debug_dir.mkdir(parents=True, exist_ok=True)
 
-    def capture(self, tick_id: int) -> FrameObservation:
+    def capture(self, tick_id: int, *, include_pixels: bool = False) -> FrameObservation:
         start = time.perf_counter()
         try:
             import mss
@@ -38,6 +40,7 @@ class FullscreenCapture:
                 capture_latency_ms=latency,
                 source="unavailable",
                 screenshot_path=None,
+                pixels_bgra=None,
             )
 
         with mss.mss() as sct:
@@ -49,6 +52,7 @@ class FullscreenCapture:
                 size=(shot.width, shot.height),
                 mss_tools=mss_tools,
             )
+            pixels_bgra = bytes(shot.bgra) if include_pixels else None
 
         latency = int((time.perf_counter() - start) * 1000)
         return FrameObservation(
@@ -57,6 +61,7 @@ class FullscreenCapture:
             capture_latency_ms=latency,
             source="fullscreen",
             screenshot_path=screenshot_path,
+            pixels_bgra=pixels_bgra,
         )
 
     def _maybe_save_debug_screenshot(

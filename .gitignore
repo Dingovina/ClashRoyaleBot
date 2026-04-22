@@ -5,3 +5,8 @@ __pycache__/
 
 # Local debug frame dumps from runtime capture
 data/raw/frame_*.png
+
+# Generated files under artifacts/ (except the small committed default checkpoint).
+artifacts/*
+!artifacts/.gitkeep
+!artifacts/battlefield_cnn.pt

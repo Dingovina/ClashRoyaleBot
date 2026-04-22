@@ -4,19 +4,7 @@ This file lists **upcoming work only**. Product constraints, accepted defaults, 
 
 ## Current sprint
 
-**Sprint 2 — Match readiness gate**
-
-## Sprint 2 (Day 6–7) — Match readiness gate
-
-- [ ] On startup, runtime stays in an **idle / waiting** state until a **battlefield-present** signal is inferred from captured frames (no card hotkeys, no deploy clicks).
-- [ ] Implement a **battlefield detector** (minimal viable approach: template match, lightweight heuristic, or small classifier — pick one and document trade-offs) with configurable thresholds and clear logs (`waiting_for_battlefield`, `battlefield_detected`, etc.).
-- [ ] Add **timeouts / safe fallback** if the battlefield never appears (e.g. remain idle or exit with a clear status code).
-- [ ] *(Optional)* **Foreground / game-window check:** before leaving idle, verify the expected **Clash Royale** (or **Google Play Games** host) window is focused; if not, log and stay idle.
-
-### Sprint 2 exit criteria
-
-- [ ] Cold start on main menu, desktop, or wrong focused window produces **zero** actuation events until a valid battlefield is visible (and optional focus check passes).
-- [ ] One short note in repo (e.g. `DECISIONS.md` or `src/runtime/README.md`) documents baseline false negative / false positive behavior for the chosen detector.
+**Sprint 3 — Coarse perception + rule baseline**
 
 ## Sprint 3 (Day 8–11) — Coarse perception + rule baseline
 
