@@ -42,4 +42,4 @@ This package contains real-time match execution code.
 - `actuation.py` sends keyboard card selection (`pynput` first, `pyautogui` fallback) and mouse click placement (`pyautogui`).
 - `candidate_policy.py` provides scripted candidate actions for reliability tests.
 - `loop.py` optionally waits for match readiness, then runs capture -> policy -> gate -> actuation and logs decisions.
-- `__main__.py` starts runtime via `python -m src.runtime`.
+- `__main__.py` starts runtime via `python -m src.runtime` or `python scripts/run_runtime.py` from the repo (see `scripts/run_runtime.*`).
