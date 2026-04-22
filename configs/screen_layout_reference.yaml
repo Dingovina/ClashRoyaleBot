@@ -14,9 +14,10 @@ reference_frame:
   height: 1080
   notes: "Typical fullscreen width; actual captures may be 1919×1079 — re-validate corners if needed."
 
+# bottom_panel: CNN battlefield model crops this rect and zeroes hand_cards / next_card / elixir_bar.
 bottom_panel:
   left: 656
-  top: 871
+  top: 873
   right: 1263
   bottom: 1079
 

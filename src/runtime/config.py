@@ -43,6 +43,7 @@ class RuntimeConfig:
     foreground_title_substrings: tuple[str, ...]
     battlefield_model_path: str | None
     battlefield_model_input_size: int
+    battlefield_model_layout_path: str
 
     @staticmethod
     def from_file(path: Path) -> "RuntimeConfig":
@@ -95,6 +96,7 @@ class RuntimeConfig:
             foreground_title_substrings=_parse_foreground_title_substrings(runtime),
             battlefield_model_path=_parse_optional_path(runtime.get("battlefield_model_path")),
             battlefield_model_input_size=max(32, int(runtime.get("battlefield_model_input_size", 128))),
+            battlefield_model_layout_path=_parse_battlefield_model_layout_path(runtime),
         )
         _validate_runtime_config(cfg)
         return cfg
@@ -116,6 +118,14 @@ def _parse_optional_path(raw: Any) -> str | None:
     return s or None
 
 
+def _parse_battlefield_model_layout_path(runtime: dict[str, Any]) -> str:
+    raw = runtime.get("battlefield_model_layout_path")
+    explicit = _parse_optional_path(raw)
+    if explicit:
+        return explicit
+    return "configs/screen_layout_reference.yaml"
+
+
 def _validate_runtime_config(cfg: RuntimeConfig) -> None:
     if cfg.match_readiness_enabled and not cfg.capture_enabled:
         raise ValueError("match_readiness_enabled requires capture_enabled to be true")
@@ -129,6 +139,9 @@ def _validate_runtime_config(cfg: RuntimeConfig) -> None:
         mp = Path(cfg.battlefield_model_path)
         if not mp.is_file():
             raise ValueError(f"battlefield_model_path does not exist or is not a file: {mp}")
+        lp = Path(cfg.battlefield_model_layout_path)
+        if not lp.is_file():
+            raise ValueError(f"battlefield_model_layout_path does not exist or is not a file: {lp}")
         if not _torch_available():
             raise ValueError(
                 "PyTorch is required for battlefield_detector model/blend; install with: pip install -r requirements-ml.txt"

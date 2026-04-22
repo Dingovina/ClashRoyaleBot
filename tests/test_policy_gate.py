@@ -42,6 +42,7 @@ def _config() -> RuntimeConfig:
         foreground_title_substrings=("clash royale", "google play games", "google play"),
         battlefield_model_path=None,
         battlefield_model_input_size=128,
+        battlefield_model_layout_path="configs/screen_layout_reference.yaml",
     )
 
 

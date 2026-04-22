@@ -31,6 +31,17 @@ class ElixirBarLayout:
     tick_width_px: int
 
 
+def intersect_pixel_rects(a: PixelRect, b: PixelRect) -> PixelRect | None:
+    """Intersection of two inclusive pixel rectangles, or None if disjoint."""
+    left = max(a.left, b.left)
+    top = max(a.top, b.top)
+    right = min(a.right, b.right)
+    bottom = min(a.bottom, b.bottom)
+    if left > right or top > bottom:
+        return None
+    return PixelRect(left=left, top=top, right=right, bottom=bottom)
+
+
 @dataclass(frozen=True)
 class ScreenLayoutReference:
     schema_version: int
@@ -42,6 +53,10 @@ class ScreenLayoutReference:
     hand_cards: tuple[PixelRect, PixelRect, PixelRect, PixelRect]
     next_card: PixelRect
     elixir_bar: ElixirBarLayout
+
+    def hud_subtract_rects(self) -> tuple[PixelRect, ...]:
+        """Regions to zero out inside ``bottom_panel`` when training/inferring the battlefield CNN."""
+        return (*self.hand_cards, self.next_card, self.elixir_bar.rect)
 
 
 def _rect(raw: dict[str, Any]) -> PixelRect:

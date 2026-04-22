@@ -148,11 +148,15 @@ def _model_probability(
 ) -> float:
     from src.perception.battlefield_infer import get_battlefield_runner
 
-    if not detector.model_path:
+    if not detector.model_path or not detector.model_layout_path:
         return 0.0
-    path = Path(detector.model_path)
-    runner = get_battlefield_runner(path, logger)
-    return runner.probability_battlefield(frame_width, frame_height, pixels_bgra, viewport)
+    _ = viewport  # CNN uses fullscreen layout YAML, not game_viewport geometry.
+    runner = get_battlefield_runner(
+        Path(detector.model_path),
+        Path(detector.model_layout_path),
+        logger,
+    )
+    return runner.probability_battlefield(frame_width, frame_height, pixels_bgra)
 
 
 @dataclass(frozen=True)
@@ -165,8 +169,8 @@ class BattlefieldDetectorConfig:
     grass_band_top_ratio: float
     grass_band_bottom_ratio: float
     model_path: str | None
-    """Square side length used when training; checkpoint also stores this."""
     model_input_size: int
+    model_layout_path: str
 
 
 def evaluate_battlefield(
@@ -181,8 +185,9 @@ def evaluate_battlefield(
     """
     Returns (is_match_ready, score). When pixels are missing, returns (False, 0.0).
 
-    ``method`` is ``heuristic`` (anchor ROI colors), ``model`` (CNN on viewport crop),
-    or ``blend`` (average of heuristic score and model probability).
+    ``method`` is ``heuristic`` (anchor ROI colors), ``model`` (CNN on masked ``bottom_panel``
+    from ``model_layout_path``, with hand slots / next card / elixir zeroed), or ``blend``
+    (average of heuristic score and model probability).
     """
     if not pixels_bgra:
         return (False, 0.0)

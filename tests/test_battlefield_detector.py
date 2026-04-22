@@ -6,6 +6,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from src.perception.battlefield_infer import clear_battlefield_runner_cache
+
 from src.runtime.battlefield_detector import (
     BattlefieldDetectorConfig,
     crop_playfield_bgra,
@@ -78,6 +80,7 @@ class BattlefieldDetectorTests(unittest.TestCase):
             grass_band_bottom_ratio=0.90,
             model_path=None,
             model_input_size=128,
+            model_layout_path="configs/screen_layout_reference.yaml",
         )
         ok, score = evaluate_battlefield(
             frame_width=w,
@@ -94,7 +97,6 @@ class BattlefieldDetectorTests(unittest.TestCase):
     def test_model_evaluate_runs_with_checkpoint(self) -> None:
         import torch
 
-        from src.perception.battlefield_infer import clear_battlefield_runner_cache
         from src.perception.battlefield_net import BattlefieldScreenNet
 
         clear_battlefield_runner_cache()
@@ -103,6 +105,7 @@ class BattlefieldDetectorTests(unittest.TestCase):
             path = Path(tmp.name)
         try:
             torch.save({"state_dict": net.state_dict(), "input_size": 64}, path)
+            layout_yaml = Path(__file__).resolve().parents[1] / "configs" / "screen_layout_reference.yaml"
             det = BattlefieldDetectorConfig(
                 method="model",
                 score_threshold=0.01,
@@ -113,6 +116,7 @@ class BattlefieldDetectorTests(unittest.TestCase):
                 grass_band_bottom_ratio=0.90,
                 model_path=str(path),
                 model_input_size=64,
+                model_layout_path=str(layout_yaml),
             )
             w, h = 80, 60
             buf = bytearray([40, 50, 60, 255]) * (w * h)

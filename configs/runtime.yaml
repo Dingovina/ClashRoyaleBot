@@ -27,6 +27,8 @@ runtime:
   # Trained weights from: python scripts/train_battlefield_classifier.py
   # battlefield_model_path: artifacts/battlefield_cnn.pt
   # battlefield_model_input_size: 128
+  # HUD layout for CNN ROI (bottom panel with cards/elixir masked out).
+  battlefield_model_layout_path: configs/screen_layout_reference.yaml
   battlefield_sample_stride: 10
   battlefield_river_band_top_ratio: 0.30
   battlefield_river_band_bottom_ratio: 0.52
