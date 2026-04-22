@@ -10,7 +10,8 @@ next-card peek, and elixir bar pixels zeroed (same preprocessing as runtime infe
 
 Requires: ``pip install -r requirements-ml.txt``
 
-Example:
+Example (run from the repository root so ``src`` resolves):
+
   python scripts/train_battlefield_classifier.py --data-dir data/battlefield_test \\
     --layout-yaml configs/screen_layout_reference.yaml --out artifacts/battlefield_cnn.pt
 """
@@ -18,7 +19,12 @@ from __future__ import annotations
 
 import argparse
 import random
+import sys
 from pathlib import Path
+
+_REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
 
 import torch
 import torch.nn as nn
