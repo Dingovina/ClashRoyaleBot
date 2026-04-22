@@ -1,9 +1,9 @@
 # ClashRoyaleBot
 
-`ClashRoyaleBot` - это pet-проект, посвященный исследованию применения ИИ в игре Clash Royale.
+Pet project exploring applied AI for **Clash Royale**.
 
-Цель проекта - создать и обучить модель, способную анализировать игровую ситуацию и принимать решения на уровне обычного игрока, используя только доступные ему данные.
+The goal is to build and train a model that reads the same on-screen information a human player sees and makes decisions at roughly average-player skill, without extra hidden state.
 
-Проект находится на раннем этапе разработки. В дальнейшем здесь появятся описание архитектуры, этапы обучения модели, используемые инструменты и результаты экспериментов.
+The repository is early-stage. Over time it will grow architecture notes, training steps, tooling, and experiment results.
 
-Важно: проект не направлен на получение нечестного преимущества в игре. Предполагается, что модель будет работать только в тех же условиях, что и человек-игрок.
+**Fair play:** the project is not meant to create an unfair advantage. The agent is intended to operate under the same constraints as a normal player.
