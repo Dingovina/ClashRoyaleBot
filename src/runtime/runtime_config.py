@@ -21,12 +21,9 @@ class RuntimeConfig:
     match_end_check_every_n_ticks: int
     zones: dict[int, tuple[float, float]]
     spell_cards: set[str]
-    capture_enabled: bool
     capture_debug_save_enabled: bool
     capture_debug_dir: str | None
     capture_every_n_ticks: int
-    actuation_enabled: bool
-    actuation_dry_run: bool
     actuation_select_to_click_delay_ms: int
     actuation_card_hotkeys: tuple[str, str, str, str]
     game_viewport: GameViewport
@@ -38,10 +35,8 @@ class RuntimeConfig:
     foreground_title_substrings: tuple[str, ...]
     battlefield_model_path: str | None
     battlefield_model_layout_path: str
-    elixir_model_enabled: bool
     elixir_model_path: str | None
     elixir_model_layout_path: str
-    card_model_enabled: bool
     card_model_path: str | None
     card_model_layout_path: str
     hand_tick_log_enabled: bool

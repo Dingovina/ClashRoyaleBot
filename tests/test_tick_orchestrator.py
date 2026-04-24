@@ -28,12 +28,9 @@ def _config() -> RuntimeConfig:
         match_end_check_every_n_ticks=2,
         zones=anchors,
         spell_cards={"fireball"},
-        capture_enabled=False,
         capture_debug_save_enabled=False,
         capture_debug_dir=None,
         capture_every_n_ticks=0,
-        actuation_enabled=False,
-        actuation_dry_run=True,
         actuation_select_to_click_delay_ms=0,
         actuation_card_hotkeys=("1", "2", "3", "4"),
         game_viewport=GameViewport(mode="full_frame"),
@@ -45,10 +42,8 @@ def _config() -> RuntimeConfig:
         foreground_title_substrings=("clash royale",),
         battlefield_model_path=None,
         battlefield_model_layout_path="configs/screen_layout_reference.yaml",
-        elixir_model_enabled=False,
         elixir_model_path=None,
         elixir_model_layout_path="configs/screen_layout_reference.yaml",
-        card_model_enabled=False,
         card_model_path=None,
         card_model_layout_path="configs/screen_layout_reference.yaml",
         hand_tick_log_enabled=False,
@@ -60,8 +55,8 @@ def _config() -> RuntimeConfig:
 
 
 @dataclass
-class _FakeFrameSource:
-    def frame_for_tick(self, tick_id: int, include_pixels: bool):
+class _FakeCapture:
+    def capture(self, tick_id: int, *, include_pixels: bool = False):
         return FrameObservation(
             width=0,
             height=0,
@@ -112,7 +107,7 @@ class TickOrchestratorTests(unittest.TestCase):
             config=cfg,
             logger=logging.getLogger("test"),
             zone_map=zone_map,
-            frame_source=_FakeFrameSource(),
+            capture=_FakeCapture(),
             perception_service=_FakePerception(),
             gate=gate,
             actuator=actuator,

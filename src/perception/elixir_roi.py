@@ -34,23 +34,19 @@ def bgra_elixir_number_rgb_tensor(
 
 
 def pil_rgb_elixir_number(image: object, layout: ScreenLayoutReference) -> object:
-    """Return ``elixir_number`` crop from a PIL RGB image.
-
-    Accepts either:
-    - a fullscreen screenshot that contains the absolute ``elixir_number`` rect, or
-    - an already-cropped image whose size exactly matches ``elixir_number``.
-    """
+    """Return ``elixir_number`` crop from a fullscreen PIL RGB image."""
     arr = np.asarray(image.convert("RGB"), dtype=np.uint8)  # type: ignore[union-attr]
     h, w, _ = arr.shape
     rect = layout.elixir_number
-    if w <= rect.width and h <= rect.height:
-        from PIL import Image
-
-        return Image.fromarray(arr.copy())
-    l = max(0, min(rect.left, w - 1))
-    t = max(0, min(rect.top, h - 1))
-    r_in = min(w - 1, rect.right)
-    b_in = min(h - 1, rect.bottom)
+    if rect.right >= w or rect.bottom >= h:
+        raise ValueError(
+            f"Input image too small for fullscreen elixir crop: got {w}x{h}, "
+            f"need at least {(rect.right + 1)}x{(rect.bottom + 1)}"
+        )
+    l = rect.left
+    t = rect.top
+    r_in = rect.right
+    b_in = rect.bottom
     crop = arr[t : b_in + 1, l : r_in + 1].copy()
 
     from PIL import Image

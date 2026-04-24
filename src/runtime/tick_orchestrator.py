@@ -6,9 +6,10 @@ from dataclasses import dataclass
 
 from src.runtime.battlefield_evaluate import infer_battlefield_probability
 from src.runtime.candidate_policy import propose_candidate_action
+from src.runtime.capture import FullscreenCapture, frame_for_tick
 from src.runtime.match_exit import MatchExitTracker
 from src.runtime.policy_gate import PolicyGate
-from src.runtime.ports import ActuatorPort, EventSink, FrameSource, PerceptionService, TickEvent
+from src.runtime.ports import ActuatorPort, EventSink, PerceptionService, TickEvent
 from src.runtime.runtime_config import RuntimeConfig
 from src.runtime.types import ActionDecision, ActionType, DecisionReason, RuntimeState
 from src.runtime.zones import ZoneMap
@@ -19,7 +20,7 @@ class TickOrchestrator:
     config: RuntimeConfig
     logger: logging.Logger
     zone_map: ZoneMap
-    frame_source: FrameSource
+    capture: FullscreenCapture
     perception_service: PerceptionService
     gate: PolicyGate
     actuator: ActuatorPort
@@ -37,7 +38,11 @@ class TickOrchestrator:
     ) -> bool:
         tick_start = time.perf_counter()
         now_ms = int((tick_start - loop_start) * 1000)
-        frame = self.frame_source.frame_for_tick(tick_id, include_pixels=include_pixels)
+        frame = frame_for_tick(
+            self.capture,
+            tick_id,
+            include_pixels=include_pixels,
+        )
 
         perception = self.perception_service.infer(frame)
         elixir_estimate = perception.elixir if perception.elixir_status == "ok" else min(10.0, tick_id * 0.5)
@@ -115,7 +120,6 @@ class TickOrchestrator:
                 frame_width=frame.width,
                 frame_height=frame.height,
                 pixels_bgra=frame.pixels_bgra,
-                viewport=self.config.game_viewport,
                 model_path=self.config.battlefield_model_path,
                 model_layout_path=self.config.battlefield_model_layout_path,
                 logger=self.logger,

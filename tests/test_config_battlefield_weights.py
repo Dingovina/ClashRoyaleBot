@@ -19,8 +19,6 @@ class ConfigBattlefieldWeightsTests(unittest.TestCase):
             layout = Path(__file__).resolve().parents[1] / "configs" / "screen_layout_reference.yaml"
             yaml_path = root / "runtime.yaml"
             board = {
-                "rows": 4,
-                "cols": 3,
                 "zones": {str(i): [0.5, 0.5] for i in range(12)},
             }
             runtime = {
@@ -34,13 +32,12 @@ class ConfigBattlefieldWeightsTests(unittest.TestCase):
                 "match_end_confirm_ticks": 6,
                 "match_end_check_every_n_ticks": 2,
                 "battlefield_score_threshold": 0.95,
-                "capture_enabled": True,
                 "match_readiness_enabled": True,
                 "battlefield_model_path": str(missing_ckpt),
                 "battlefield_model_layout_path": str(layout),
             }
             yaml_path.write_text(
-                yaml.safe_dump({"runtime": runtime, "board": board, "card_types": {"spell_cards": []}}),
+                yaml.safe_dump({"runtime": runtime, "board": board}),
                 encoding="utf-8",
             )
             with self.assertRaises(ValueError) as ctx:

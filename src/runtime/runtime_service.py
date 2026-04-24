@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from src.runtime.actuation import InputActuator
 from src.runtime.adapters.jsonl_event_sink import JsonlTickEventSink
 from src.runtime.adapters.perception_service import RuntimePerceptionService
-from src.runtime.capture import FullscreenCapture, frame_for_tick
+from src.runtime.capture import FullscreenCapture
 from src.runtime.match_exit import MatchExitTracker
 from src.runtime.match_readiness import wait_for_match_readiness
 from src.runtime.policy_gate import PolicyGate
@@ -30,10 +30,9 @@ class RuntimeService:
             debug_dir=debug_dir,
             capture_every_n_ticks=self.config.capture_every_n_ticks,
         )
-        frame_source = _CaptureFrameSource(capture=capture, capture_enabled=self.config.capture_enabled)
         actuator = InputActuator(
-            enabled=self.config.actuation_enabled,
-            dry_run=self.config.actuation_dry_run,
+            enabled=True,
+            dry_run=False,
             logger=self.logger,
             game_viewport=self.config.game_viewport,
             select_to_click_delay_ms=self.config.actuation_select_to_click_delay_ms,
@@ -43,7 +42,7 @@ class RuntimeService:
             config=self.config,
             logger=self.logger,
             zone_map=zone_map,
-            frame_source=frame_source,
+            capture=capture,
             perception_service=RuntimePerceptionService(config=self.config, logger=self.logger),
             gate=gate,
             actuator=actuator,
@@ -69,11 +68,10 @@ class RuntimeService:
                 return 0
             want_match_end_pixels = (
                 end_tracking
-                and self.config.capture_enabled
                 and (tick_id % self.config.match_end_check_every_n_ticks == 0)
             )
-            want_elixir_pixels = self.config.elixir_model_enabled and self.config.capture_enabled
-            want_card_pixels = self.config.card_model_enabled and self.config.capture_enabled
+            want_elixir_pixels = True
+            want_card_pixels = True
             match_ended = orchestrator.run_tick(
                 tick_id=tick_id,
                 loop_start=start,
@@ -90,17 +88,3 @@ class RuntimeService:
                 )
                 return 0
             tick_id += 1
-
-
-@dataclass
-class _CaptureFrameSource:
-    capture: FullscreenCapture
-    capture_enabled: bool
-
-    def frame_for_tick(self, tick_id: int, include_pixels: bool):
-        return frame_for_tick(
-            self.capture,
-            self.capture_enabled,
-            tick_id,
-            include_pixels=include_pixels,
-        )

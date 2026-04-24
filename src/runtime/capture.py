@@ -81,17 +81,6 @@ class FullscreenCapture:
         return str(file_path)
 
 
-def frame_for_tick(
-    capture: FullscreenCapture, capture_enabled: bool, tick_id: int, *, include_pixels: bool
-) -> FrameObservation:
-    """Return a real capture when enabled, otherwise an empty stub observation."""
-    if not capture_enabled:
-        return FrameObservation(
-            width=0,
-            height=0,
-            capture_latency_ms=0,
-            source="disabled",
-            screenshot_path=None,
-            pixels_bgra=None,
-        )
+def frame_for_tick(capture: FullscreenCapture, tick_id: int, *, include_pixels: bool) -> FrameObservation:
+    """Return a real capture frame for the given tick."""
     return capture.capture(tick_id, include_pixels=include_pixels)

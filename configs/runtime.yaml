@@ -1,62 +1,28 @@
 runtime:
+  # --- Policy thresholds ---
   tick_interval_ms: 1000
   action_rate_limit_ms: 1000
   action_confidence_threshold: 0.70
   no_op_confidence_threshold: 0.55
   min_elixir_for_non_urgent_action: 3.0
-  # Main loop stops when the battlefield CNN stays below battlefield_end_score_threshold
-  # for match_end_confirm_ticks consecutive probes (every match_end_check_every_n_ticks ticks).
-  # Hard ceiling on main-loop ticks (0 = unlimited if CNN match-end is active).
-  match_safety_max_ticks: 7200
-  battlefield_end_score_threshold: 0.42
-  match_end_confirm_ticks: 6
-  match_end_check_every_n_ticks: 2
-  capture_enabled: true
+
+  # --- Match lifecycle ---
+  # Raised threshold for stricter match-start readiness.
+  battlefield_score_threshold: 0.95
+
+  # --- Capture/debug ---
   # When false, no PNG frames are written under capture_debug_dir (e.g. data/raw).
   capture_debug_save_enabled: false
   capture_debug_dir: data/raw
   capture_every_n_ticks: 10
-  actuation_enabled: true
-  actuation_dry_run: false
-  # Wait after card hotkey before arena click (many UIs need a short gap).
-  actuation_select_to_click_delay_ms: 120
-  # In-game hotkeys for the four hand slots (left to right). Match Clash Royale settings.
-  actuation_card_hotkeys:
-    - "1"
-    - "2"
-    - "3"
-    - "4"
-  # Pre-loop wait until the battlefield CNN accepts the screen (see README and src/runtime/README.md).
-  match_readiness_enabled: true
-  # Sigmoid probability threshold for the CNN (tune after training, often ~0.55–0.85).
-  battlefield_score_threshold: 0.95
-  # Trained weights (default). Train: see README.md (one-line python ... command from repo root).
-  battlefield_model_path: artifacts/battlefield_cnn.pt
-  # HUD layout for CNN ROI (bottom panel with cards/elixir masked out).
-  battlefield_model_layout_path: configs/screen_layout_reference.yaml
-  # Per-tick elixir digit CNN on the elixir_number ROI.
-  elixir_model_enabled: true
-  elixir_model_path: artifacts/elixir_cnn.pt
-  elixir_model_layout_path: configs/screen_layout_reference.yaml
-  # Per-tick hand card classifier on 4 hand slots.
-  card_model_enabled: true
-  card_model_path: artifacts/card_cnn.pt
-  card_model_layout_path: configs/screen_layout_reference.yaml
-  # Per-tick hand card predictions are also written into a separate JSONL file.
-  hand_tick_log_enabled: true
-  hand_tick_log_path: logs/hand_cards_ticks.jsonl
-  session_id: local-runtime
-  card_registry_path: configs/card_registry.yaml
-  # Required for pre-play legality gate: card costs are loaded from configs/card_elixir_costs.yaml.
-  # 0 = wait indefinitely; otherwise wall-clock limit for the pre-match wait loop.
-  battlefield_wait_timeout_ms: 120000
-  # idle: run ticks but force NO_OP actuation; exit_nonzero: process exits with code 2.
-  battlefield_timeout_behavior: idle
-  foreground_check_enabled: false
-  foreground_title_substrings:
-    - "clash royale"
-    - "google play games"
-    - "google play"
+
+  # --- Actuation ---
+  # Always live in this runtime profile.
+
+  # --- Perception models ---
+  # Battlefield/elixir/card models are always enabled in this runtime profile.
+
+  # --- Runtime viewport mapping ---
   # Clash in Google Play Games: portrait playfield centered on a wide monitor.
   # Anchors in board.zones are normalized within this rectangle (not the full capture).
   game_viewport:
@@ -72,8 +38,6 @@ runtime:
       height_ratio: 0.68
 
 board:
-  rows: 4
-  cols: 3
   zones:
     "0": [0.17, 0.125]
     "1": [0.50, 0.125]
@@ -87,9 +51,3 @@ board:
     "9": [0.17, 0.875]
     "10": [0.50, 0.875]
     "11": [0.83, 0.875]
-
-card_types:
-  spell_cards:
-    - arrows
-    - fireball
-    - zap

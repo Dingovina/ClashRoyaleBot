@@ -79,7 +79,6 @@ def wait_for_match_readiness(
             frame_width=frame.width,
             frame_height=frame.height,
             pixels_bgra=frame.pixels_bgra,
-            viewport=config.game_viewport,
             detector=detector,
             logger=logger,
         )

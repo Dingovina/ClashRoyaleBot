@@ -4,7 +4,6 @@ import logging
 from pathlib import Path
 
 from src.runtime.battlefield_config import BattlefieldModelConfig
-from src.runtime.viewport import GameViewport
 
 
 def evaluate_battlefield(
@@ -12,7 +11,6 @@ def evaluate_battlefield(
     frame_width: int,
     frame_height: int,
     pixels_bgra: bytes | None,
-    viewport: GameViewport,
     detector: BattlefieldModelConfig,
     logger: logging.Logger,
 ) -> tuple[bool, float]:
@@ -25,7 +23,7 @@ def evaluate_battlefield(
         return (False, 0.0)
 
     try:
-        prob = _model_probability(frame_width, frame_height, pixels_bgra, viewport, detector, logger)
+        prob = _model_probability(frame_width, frame_height, pixels_bgra, detector, logger)
         logger.debug("battlefield_model_score prob=%.4f", prob)
         return (prob >= detector.score_threshold, prob)
     except Exception as exc:
@@ -38,7 +36,6 @@ def infer_battlefield_probability(
     frame_width: int,
     frame_height: int,
     pixels_bgra: bytes | None,
-    viewport: GameViewport,
     model_path: str,
     model_layout_path: str,
     logger: logging.Logger,
@@ -55,7 +52,7 @@ def infer_battlefield_probability(
         model_layout_path=model_layout_path,
     )
     try:
-        return _model_probability(frame_width, frame_height, pixels_bgra, viewport, detector, logger)
+        return _model_probability(frame_width, frame_height, pixels_bgra, detector, logger)
     except Exception as exc:
         logger.warning("battlefield_probability_infer_failed err=%s", exc)
         return 1.0
@@ -65,13 +62,11 @@ def _model_probability(
     frame_width: int,
     frame_height: int,
     pixels_bgra: bytes,
-    viewport: GameViewport,
     detector: BattlefieldModelConfig,
     logger: logging.Logger,
 ) -> float:
     from src.perception.battlefield_infer import get_battlefield_runner
 
-    _ = viewport  # CNN uses fullscreen layout YAML, not game_viewport geometry.
     runner = get_battlefield_runner(
         Path(detector.model_path),
         Path(detector.model_layout_path),

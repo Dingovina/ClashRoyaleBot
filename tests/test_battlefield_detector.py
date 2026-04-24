@@ -51,7 +51,6 @@ class BattlefieldModelTests(unittest.TestCase):
                 frame_width=w,
                 frame_height=h,
                 pixels_bgra=bytes(buf),
-                viewport=GameViewport(mode="full_frame"),
                 detector=det,
                 logger=logging.getLogger("test"),
             )

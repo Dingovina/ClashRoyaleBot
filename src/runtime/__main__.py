@@ -5,7 +5,7 @@ import logging
 from pathlib import Path
 
 from src.runtime.config_loader import load_runtime_config
-from src.runtime.loop import RuntimeLoop
+from src.runtime.runtime_service import RuntimeService
 
 
 def main() -> None:
@@ -25,7 +25,7 @@ def main() -> None:
     logger = logging.getLogger("runtime")
 
     config = load_runtime_config(args.config)
-    exit_code = RuntimeLoop(config=config, logger=logger).run()
+    exit_code = RuntimeService(config=config, logger=logger).run()
     raise SystemExit(exit_code)
 
 

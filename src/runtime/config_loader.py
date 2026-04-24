@@ -15,7 +15,6 @@ DEFAULT_ELIXIR_CHECKPOINT = "artifacts/elixir_cnn.pt"
 DEFAULT_CARD_CHECKPOINT = "artifacts/card_cnn.pt"
 DEFAULT_ELIXIR_LAYOUT_PATH = "configs/screen_layout_reference.yaml"
 DEFAULT_CARD_LAYOUT_PATH = "configs/screen_layout_reference.yaml"
-DEFAULT_CARD_ELIXIR_COSTS_PATH = "configs/card_elixir_costs.yaml"
 DEFAULT_CARD_REGISTRY_PATH = "configs/card_registry.yaml"
 
 TRAIN_BATTLEFIELD_CLASSIFIER_HELP = (
@@ -46,6 +45,7 @@ TRAIN_CARD_CLASSIFIER_HELP = (
 
 def load_runtime_config(path: Path) -> RuntimeConfig:
     data = _load_yaml(path)
+    _validate_top_level_keys(path, data)
     if "runtime" not in data:
         found = list(data.keys())
         raise ValueError(
@@ -56,8 +56,9 @@ def load_runtime_config(path: Path) -> RuntimeConfig:
         raise ValueError(f"{path}: missing top-level key 'board'. Found keys: {list(data.keys())}")
     runtime = data["runtime"]
     board = data["board"]
-    card_types = data.get("card_types", {})
-    registry = _parse_card_registry(runtime, card_types)
+    _validate_runtime_keys(path, runtime)
+    _validate_board_keys(path, board)
+    registry = _parse_card_registry(runtime)
 
     zones = {
         int(zone_id): (float(anchor[0]), float(anchor[1]))
@@ -68,14 +69,8 @@ def load_runtime_config(path: Path) -> RuntimeConfig:
     model_path = _parse_optional_path(runtime.get("battlefield_model_path"))
     if match_readiness_enabled and not model_path:
         model_path = DEFAULT_BATTLEFIELD_CHECKPOINT
-    elixir_model_enabled = bool(runtime.get("elixir_model_enabled", False))
-    elixir_model_path = _parse_optional_path(runtime.get("elixir_model_path"))
-    if elixir_model_enabled and not elixir_model_path:
-        elixir_model_path = DEFAULT_ELIXIR_CHECKPOINT
-    card_model_enabled = bool(runtime.get("card_model_enabled", False))
-    card_model_path = _parse_optional_path(runtime.get("card_model_path"))
-    if card_model_enabled and not card_model_path:
-        card_model_path = DEFAULT_CARD_CHECKPOINT
+    elixir_model_path = _parse_optional_path(runtime.get("elixir_model_path")) or DEFAULT_ELIXIR_CHECKPOINT
+    card_model_path = _parse_optional_path(runtime.get("card_model_path")) or DEFAULT_CARD_CHECKPOINT
 
     cfg = RuntimeConfig(
         tick_interval_ms=int(runtime["tick_interval_ms"]),
@@ -89,12 +84,9 @@ def load_runtime_config(path: Path) -> RuntimeConfig:
         match_end_check_every_n_ticks=max(1, int(runtime.get("match_end_check_every_n_ticks", 2))),
         zones=zones,
         spell_cards=registry.spell_cards,
-        capture_enabled=bool(runtime.get("capture_enabled", True)),
         capture_debug_save_enabled=bool(runtime.get("capture_debug_save_enabled", True)),
         capture_debug_dir=runtime.get("capture_debug_dir"),
         capture_every_n_ticks=max(0, int(runtime.get("capture_every_n_ticks", 0))),
-        actuation_enabled=bool(runtime.get("actuation_enabled", False)),
-        actuation_dry_run=bool(runtime.get("actuation_dry_run", True)),
         actuation_select_to_click_delay_ms=max(
             0, int(runtime.get("actuation_select_to_click_delay_ms", 120))
         ),
@@ -110,10 +102,8 @@ def load_runtime_config(path: Path) -> RuntimeConfig:
         foreground_title_substrings=_parse_foreground_title_substrings(runtime),
         battlefield_model_path=model_path,
         battlefield_model_layout_path=_parse_battlefield_model_layout_path(runtime),
-        elixir_model_enabled=elixir_model_enabled,
         elixir_model_path=elixir_model_path,
         elixir_model_layout_path=_parse_elixir_model_layout_path(runtime),
-        card_model_enabled=card_model_enabled,
         card_model_path=card_model_path,
         card_model_layout_path=_parse_card_model_layout_path(runtime),
         hand_tick_log_enabled=bool(runtime.get("hand_tick_log_enabled", True)),
@@ -163,25 +153,6 @@ def _parse_elixir_model_layout_path(runtime: dict[str, Any]) -> str:
     return DEFAULT_ELIXIR_LAYOUT_PATH
 
 
-def _parse_card_elixir_costs() -> dict[str, float]:
-    path = Path(DEFAULT_CARD_ELIXIR_COSTS_PATH)
-    if not path.is_file():
-        raise ValueError(f"card elixir costs file does not exist: {path}")
-    raw = _load_yaml(path)
-    out: dict[str, float] = {}
-    for name, value in raw.items():
-        key = str(name).strip().lower()
-        if not key:
-            raise ValueError(f"{path}: contains an empty card name")
-        cost = float(value)
-        if cost <= 0:
-            raise ValueError(f"{path}: cost for '{key}' must be > 0")
-        out[key] = cost
-    if not out:
-        raise ValueError(f"{path}: must not be empty")
-    return out
-
-
 @dataclass(frozen=True)
 class _RegistryParseResult:
     aliases: dict[str, str]
@@ -189,24 +160,19 @@ class _RegistryParseResult:
     spell_cards: set[str]
 
 
-def _parse_card_registry(runtime: dict[str, Any], card_types: dict[str, Any]) -> _RegistryParseResult:
+def _parse_card_registry(runtime: dict[str, Any]) -> _RegistryParseResult:
     path_raw = runtime.get("card_registry_path", DEFAULT_CARD_REGISTRY_PATH)
     path = Path(str(path_raw).strip())
-    if path.is_file():
-        reg = load_card_registry(path)
-        return _RegistryParseResult(
-            aliases=reg.aliases,
-            elixir_costs=reg.elixir_costs,
-            spell_cards=set(reg.spell_cards),
+    if not path.is_file():
+        raise ValueError(
+            f"card_registry_path does not exist or is not a file: {path}. "
+            "Use runtime.card_registry_path (default: configs/card_registry.yaml)."
         )
-    # Backward-compatible fallback while configs migrate to card_registry.yaml
-    fallback_costs = _parse_card_elixir_costs()
-    fallback_aliases = {k: k for k in fallback_costs}
-    fallback_spells = {str(x).strip().lower() for x in card_types.get("spell_cards", []) if str(x).strip()}
+    reg = load_card_registry(path)
     return _RegistryParseResult(
-        aliases=fallback_aliases,
-        elixir_costs=fallback_costs,
-        spell_cards=fallback_spells,
+        aliases=reg.aliases,
+        elixir_costs=reg.elixir_costs,
+        spell_cards=set(reg.spell_cards),
     )
 
 
@@ -239,9 +205,6 @@ def _is_default_battlefield_checkpoint(path: Path) -> bool:
 
 
 def _validate_runtime_config(cfg: RuntimeConfig) -> None:
-    if cfg.match_readiness_enabled and not cfg.capture_enabled:
-        raise ValueError("match_readiness_enabled requires capture_enabled to be true")
-
     if cfg.match_readiness_enabled:
         if not cfg.battlefield_model_path:
             raise ValueError(
@@ -269,51 +232,39 @@ def _validate_runtime_config(cfg: RuntimeConfig) -> None:
                 "Install with: pip install -r requirements-ml.txt"
             )
 
-    if cfg.elixir_model_enabled:
-        if not cfg.capture_enabled:
-            raise ValueError("elixir_model_enabled requires capture_enabled to be true")
-        if not cfg.elixir_model_path:
-            raise ValueError("elixir_model_enabled requires elixir_model_path (or default path)")
-        ep = Path(cfg.elixir_model_path)
-        if not ep.is_file():
-            if ep.as_posix().replace("\\", "/").endswith("/artifacts/elixir_cnn.pt"):
-                lead = (
-                    f"Missing default elixir classifier weights: {DEFAULT_ELIXIR_CHECKPOINT} "
-                    f"(resolved as {ep.resolve()}). Create this file by training the model."
-                )
-            else:
-                lead = f"elixir_model_path does not exist or is not a file: {ep}"
-            raise ValueError(f"{lead}\n\n{TRAIN_ELIXIR_CLASSIFIER_HELP}")
-        lp = Path(cfg.elixir_model_layout_path)
-        if not lp.is_file():
-            raise ValueError(f"elixir_model_layout_path does not exist or is not a file: {lp}")
-        if not _torch_available():
-            raise ValueError(
-                "PyTorch is required for elixir CNN inference. Install with: pip install -r requirements-ml.txt"
+    ep = Path(cfg.elixir_model_path)
+    if not ep.is_file():
+        if ep.as_posix().replace("\\", "/").endswith("/artifacts/elixir_cnn.pt"):
+            lead = (
+                f"Missing default elixir classifier weights: {DEFAULT_ELIXIR_CHECKPOINT} "
+                f"(resolved as {ep.resolve()}). Create this file by training the model."
             )
+        else:
+            lead = f"elixir_model_path does not exist or is not a file: {ep}"
+        raise ValueError(f"{lead}\n\n{TRAIN_ELIXIR_CLASSIFIER_HELP}")
+    lp = Path(cfg.elixir_model_layout_path)
+    if not lp.is_file():
+        raise ValueError(f"elixir_model_layout_path does not exist or is not a file: {lp}")
 
-    if cfg.card_model_enabled:
-        if not cfg.capture_enabled:
-            raise ValueError("card_model_enabled requires capture_enabled to be true")
-        if not cfg.card_model_path:
-            raise ValueError("card_model_enabled requires card_model_path (or default path)")
-        cp = Path(cfg.card_model_path)
-        if not cp.is_file():
-            if cp.as_posix().replace("\\", "/").endswith("/artifacts/card_cnn.pt"):
-                lead = (
-                    f"Missing default card classifier weights: {DEFAULT_CARD_CHECKPOINT} "
-                    f"(resolved as {cp.resolve()}). Create this file by training the model."
-                )
-            else:
-                lead = f"card_model_path does not exist or is not a file: {cp}"
-            raise ValueError(f"{lead}\n\n{TRAIN_CARD_CLASSIFIER_HELP}")
-        lp = Path(cfg.card_model_layout_path)
-        if not lp.is_file():
-            raise ValueError(f"card_model_layout_path does not exist or is not a file: {lp}")
-        if not _torch_available():
-            raise ValueError(
-                "PyTorch is required for card CNN inference. Install with: pip install -r requirements-ml.txt"
+    cp = Path(cfg.card_model_path)
+    if not cp.is_file():
+        if cp.as_posix().replace("\\", "/").endswith("/artifacts/card_cnn.pt"):
+            lead = (
+                f"Missing default card classifier weights: {DEFAULT_CARD_CHECKPOINT} "
+                f"(resolved as {cp.resolve()}). Create this file by training the model."
             )
+        else:
+            lead = f"card_model_path does not exist or is not a file: {cp}"
+        raise ValueError(f"{lead}\n\n{TRAIN_CARD_CLASSIFIER_HELP}")
+    lp = Path(cfg.card_model_layout_path)
+    if not lp.is_file():
+        raise ValueError(f"card_model_layout_path does not exist or is not a file: {lp}")
+
+    if not _torch_available():
+        raise ValueError(
+            "PyTorch is required for runtime CNN inference (battlefield/elixir/cards). "
+            "Install with: pip install -r requirements-ml.txt"
+        )
 
     _validate_match_exit(cfg)
 
@@ -327,8 +278,6 @@ def _validate_match_exit(cfg: RuntimeConfig) -> None:
             )
         return
 
-    if not cfg.capture_enabled:
-        raise ValueError("match_end_confirm_ticks > 0 requires capture_enabled")
     if not cfg.battlefield_model_path:
         raise ValueError(
             "match_end_confirm_ticks > 0 requires battlefield_model_path (same CNN as match readiness)"
@@ -402,3 +351,56 @@ def _load_yaml(path: Path) -> dict[str, Any]:
     if not isinstance(parsed, dict):
         raise ValueError(f"Invalid YAML structure in {path}")
     return parsed
+
+
+def _validate_top_level_keys(path: Path, data: dict[str, Any]) -> None:
+    allowed = {"runtime", "board"}
+    unknown = sorted(k for k in data.keys() if k not in allowed)
+    if unknown:
+        raise ValueError(f"{path}: unknown top-level keys: {unknown}. Allowed: {sorted(allowed)}")
+
+
+def _validate_runtime_keys(path: Path, runtime: dict[str, Any]) -> None:
+    allowed = {
+        "tick_interval_ms",
+        "action_rate_limit_ms",
+        "action_confidence_threshold",
+        "no_op_confidence_threshold",
+        "min_elixir_for_non_urgent_action",
+        "match_safety_max_ticks",
+        "battlefield_end_score_threshold",
+        "match_end_confirm_ticks",
+        "match_end_check_every_n_ticks",
+        "capture_debug_save_enabled",
+        "capture_debug_dir",
+        "capture_every_n_ticks",
+        "actuation_select_to_click_delay_ms",
+        "actuation_card_hotkeys",
+        "game_viewport",
+        "match_readiness_enabled",
+        "battlefield_score_threshold",
+        "battlefield_wait_timeout_ms",
+        "battlefield_timeout_behavior",
+        "foreground_check_enabled",
+        "foreground_title_substrings",
+        "battlefield_model_path",
+        "battlefield_model_layout_path",
+        "elixir_model_path",
+        "elixir_model_layout_path",
+        "card_model_path",
+        "card_model_layout_path",
+        "hand_tick_log_enabled",
+        "hand_tick_log_path",
+        "session_id",
+        "card_registry_path",
+    }
+    unknown = sorted(k for k in runtime.keys() if k not in allowed)
+    if unknown:
+        raise ValueError(f"{path}: unknown runtime keys: {unknown}")
+
+
+def _validate_board_keys(path: Path, board: dict[str, Any]) -> None:
+    allowed = {"zones"}
+    unknown = sorted(k for k in board.keys() if k not in allowed)
+    if unknown:
+        raise ValueError(f"{path}: unknown board keys: {unknown}. Keep only board.zones.")

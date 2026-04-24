@@ -8,10 +8,6 @@ from src.runtime.types import ActionDecision, PerceptionSnapshot
 from src.runtime.zones import ZoneMap
 
 
-class FrameSource(Protocol):
-    def frame_for_tick(self, tick_id: int, include_pixels: bool) -> FrameObservation: ...
-
-
 class PerceptionService(Protocol):
     def infer(self, frame: FrameObservation) -> PerceptionSnapshot: ...
 

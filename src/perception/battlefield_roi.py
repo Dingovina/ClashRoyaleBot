@@ -55,27 +55,22 @@ def bgra_masked_bottom_panel_rgb_tensor(
 
 
 def pil_rgb_masked_bottom_panel(image: object, layout: ScreenLayoutReference) -> object:
-    """Same masking as CNN runtime path for PIL RGB training images.
-
-    Accepts either:
-    - a fullscreen screenshot that contains ``bottom_panel`` in absolute coordinates, or
-    - an already-cropped ``bottom_panel`` image with exact panel size.
-    """
+    """Same masking as CNN runtime path for PIL RGB training images."""
     arr = np.asarray(image.convert("RGB"), dtype=np.uint8)  # type: ignore[union-attr]
     h, w, _ = arr.shape
     bp = layout.bottom_panel
-    if w <= bp.width and h <= bp.height:
-        crop = arr.copy()
-        origin_x = bp.left
-        origin_y = bp.top
-    else:
-        l = max(0, min(bp.left, w - 1))
-        t = max(0, min(bp.top, h - 1))
-        r_in = min(w - 1, bp.right)
-        b_in = min(h - 1, bp.bottom)
-        crop = arr[t : b_in + 1, l : r_in + 1].copy()
-        origin_x = l
-        origin_y = t
+    if bp.right >= w or bp.bottom >= h:
+        raise ValueError(
+            f"Input image too small for fullscreen bottom_panel crop: got {w}x{h}, "
+            f"need at least {(bp.right + 1)}x{(bp.bottom + 1)}"
+        )
+    l = bp.left
+    t = bp.top
+    r_in = bp.right
+    b_in = bp.bottom
+    crop = arr[t : b_in + 1, l : r_in + 1].copy()
+    origin_x = l
+    origin_y = t
     ch, cw, _ = crop.shape
 
     for rect in layout.hud_subtract_rects():

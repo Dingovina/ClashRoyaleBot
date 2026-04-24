@@ -18,7 +18,7 @@ The repository is early-stage. Over time it will grow architecture notes, traini
 | **Architecture decisions (ADRs)** | `DECISIONS.md` |
 | **Runtime package (modules, shipped behavior)** | `src/runtime/README.md` |
 | **Runtime configuration** | `configs/runtime.yaml` |
-| **Card elixir costs** | `configs/card_elixir_costs.yaml` |
+| **Card registry (costs, aliases, classes)** | `configs/card_registry.yaml` |
 | **Run runtime locally** | `scripts/run_runtime.py` (or `scripts/run_runtime.bat` / `run_runtime.ps1` on Windows) |
 | **Battlefield CNN (match readiness, train, eval)** | `scripts/train_battlefield_classifier.py`, `scripts/eval_battlefield_classifier.py`, `artifacts/battlefield_cnn.pt`, `configs/screen_layout_reference.yaml`, `requirements-ml.txt` |
 | **Hand-card classifier (train, eval)** | `scripts/train_card_classifier.py`, `scripts/eval_card_classifier.py`, `data/processed/cards`, `artifacts/card_cnn.pt` |
@@ -67,7 +67,7 @@ When `match_readiness_enabled` is true, the runtime loads **`artifacts/battlefie
    ```
 
    This reads from `data/raw/` and writes only masked `bottom_panel` (battlefield) and `elixir_number` ROI (elixir) into `data/processed/`.
-   Successfully processed raw PNGs are removed from `data/raw/`.
+   Raw PNGs are kept by default; use `--delete-source` to remove processed files.
 4. Train from the **repository root** (so `src` resolves):
 
    ```powershell
@@ -80,6 +80,13 @@ When `match_readiness_enabled` is true, the runtime loads **`artifacts/battlefie
    **cmd.exe** may use `^` at end-of-line for continuation. Optional flags: `--input-size`, `--epochs`, `--lr` (see `python scripts/train_battlefield_classifier.py --help`).
 5. Tune `battlefield_score_threshold` in `configs/runtime.yaml` after checking probabilities, for example with `python scripts/eval_battlefield_classifier.py --checkpoint artifacts/battlefield_cnn.pt --data-dir data/processed/battlefield_test`.
 6. If your HUD geometry differs from the reference 1920×1080 layout, copy and edit `configs/screen_layout_reference.yaml`, then point `battlefield_model_layout_path` at your file for both training and runtime.
+
+## Migration notes (legacy cleanup)
+
+- Runtime config now accepts only top-level keys: `runtime`, `board`.
+- Legacy `card_types` and `configs/card_elixir_costs.yaml` fallback are removed; use `configs/card_registry.yaml`.
+- `board.rows`/`board.cols` are removed; keep only `board.zones`.
+- ROI training helpers now expect fullscreen screenshots for crop functions.
 
 ---
 
