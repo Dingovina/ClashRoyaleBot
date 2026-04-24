@@ -40,6 +40,10 @@ def _config() -> RuntimeConfig:
         foreground_title_substrings=("clash royale", "google play games", "google play"),
         battlefield_model_path=None,
         battlefield_model_layout_path="configs/screen_layout_reference.yaml",
+        elixir_model_enabled=False,
+        elixir_model_path=None,
+        elixir_model_layout_path="configs/screen_layout_reference.yaml",
+        card_elixir_costs={"knight": 3.0, "archers": 3.0, "fireball": 4.0, "giant": 5.0},
     )
 
 
@@ -80,8 +84,13 @@ class PolicyGateTests(unittest.TestCase):
         self.assertEqual(second.reason, "rate_limited")
 
     def test_urgent_action_overrides_uncertainty_band(self) -> None:
-        decision = self.gate.decide(_state(0, elixir=2.0), _candidate(confidence=0.60, urgent=True))
+        decision = self.gate.decide(_state(0, elixir=3.0), _candidate(confidence=0.60, urgent=True))
         self.assertEqual(decision.action_type, "deploy")
+
+    def test_no_op_when_card_cost_exceeds_elixir(self) -> None:
+        decision = self.gate.decide(_state(0, elixir=2.0), _candidate(confidence=0.95))
+        self.assertEqual(decision.action_type, "no_op")
+        self.assertIn(decision.reason, {"low_elixir_non_urgent", "insufficient_elixir_for_card"})
 
 
 if __name__ == "__main__":

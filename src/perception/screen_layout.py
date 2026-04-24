@@ -25,12 +25,6 @@ class PixelRect:
         return self.bottom - self.top + 1
 
 
-@dataclass(frozen=True)
-class ElixirBarLayout:
-    rect: PixelRect
-    tick_width_px: int
-
-
 def intersect_pixel_rects(a: PixelRect, b: PixelRect) -> PixelRect | None:
     """Intersection of two inclusive pixel rectangles, or None if disjoint."""
     left = max(a.left, b.left)
@@ -52,11 +46,11 @@ class ScreenLayoutReference:
     bottom_panel: PixelRect
     hand_cards: tuple[PixelRect, PixelRect, PixelRect, PixelRect]
     next_card: PixelRect
-    elixir_bar: ElixirBarLayout
+    elixir_number: PixelRect
 
     def hud_subtract_rects(self) -> tuple[PixelRect, ...]:
         """Regions to zero out inside ``bottom_panel`` when training/inferring the battlefield CNN."""
-        return (*self.hand_cards, self.next_card, self.elixir_bar.rect)
+        return (*self.hand_cards, self.next_card, self.elixir_number)
 
 
 def _rect(raw: dict[str, Any]) -> PixelRect:
@@ -88,9 +82,9 @@ def load_screen_layout_reference(path: Path) -> ScreenLayoutReference:
         hand.append(_rect(item))
 
     ref = data.get("reference_frame") or {}
-    elixir = data["elixir_bar"]
-    if not isinstance(elixir, dict) or "tick_width_px" not in elixir:
-        raise ValueError("elixir_bar must include tick_width_px")
+    elixir_raw = data.get("elixir_number")
+    if not isinstance(elixir_raw, dict):
+        raise ValueError("elixir_number must be a mapping with left, top, right, bottom")
 
     return ScreenLayoutReference(
         schema_version=int(data.get("schema_version", 1)),
@@ -101,5 +95,5 @@ def load_screen_layout_reference(path: Path) -> ScreenLayoutReference:
         bottom_panel=_rect(data["bottom_panel"]),
         hand_cards=(hand[0], hand[1], hand[2], hand[3]),
         next_card=_rect(data["next_card"]),
-        elixir_bar=ElixirBarLayout(rect=_rect(elixir), tick_width_px=int(elixir["tick_width_px"])),
+        elixir_number=_rect(elixir_raw),
     )

@@ -8,7 +8,7 @@ Requires: ``pip install -r requirements-ml.txt``
 
 Example (from repository root, one line):
 
-  python scripts/eval_battlefield_classifier.py --checkpoint artifacts/battlefield_cnn.pt --data-dir data/battlefield_test --layout-yaml configs/screen_layout_reference.yaml --threshold 0.5
+  python scripts/eval_battlefield_classifier.py --checkpoint artifacts/battlefield_cnn.pt --data-dir data/processed/battlefield_test --layout-yaml configs/screen_layout_reference.yaml --threshold 0.5
 """
 from __future__ import annotations
 
@@ -54,7 +54,7 @@ def _torch_load(path: Path) -> dict:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Score labeled PNGs with the battlefield CNN")
     parser.add_argument("--checkpoint", type=Path, required=True)
-    parser.add_argument("--data-dir", type=Path, default=Path("data/battlefield_test"))
+    parser.add_argument("--data-dir", type=Path, default=Path("data/processed/battlefield_test"))
     parser.add_argument(
         "--layout-yaml",
         type=Path,

@@ -16,7 +16,7 @@ def bgra_masked_bottom_panel_rgb_tensor(
 ) -> torch.Tensor:
     """
     Crop ``bottom_panel`` from a fullscreen BGRA frame, zero-out HUD rects (hand slots,
-    next card, elixir bar), convert to RGB, resize to a square for the battlefield CNN.
+    next card, elixir number digit), convert to RGB, resize to a square for the battlefield CNN.
     """
     bp = layout.bottom_panel
     l = max(0, min(bp.left, frame_width - 1))
@@ -55,25 +55,37 @@ def bgra_masked_bottom_panel_rgb_tensor(
 
 
 def pil_rgb_masked_bottom_panel(image: object, layout: ScreenLayoutReference) -> object:
-    """Same masking as the CNN runtime path, for training from PIL screenshots (RGB)."""
+    """Same masking as CNN runtime path for PIL RGB training images.
+
+    Accepts either:
+    - a fullscreen screenshot that contains ``bottom_panel`` in absolute coordinates, or
+    - an already-cropped ``bottom_panel`` image with exact panel size.
+    """
     arr = np.asarray(image.convert("RGB"), dtype=np.uint8)  # type: ignore[union-attr]
     h, w, _ = arr.shape
     bp = layout.bottom_panel
-    l = max(0, min(bp.left, w - 1))
-    t = max(0, min(bp.top, h - 1))
-    r_in = min(w - 1, bp.right)
-    b_in = min(h - 1, bp.bottom)
-    crop = arr[t : b_in + 1, l : r_in + 1].copy()
+    if w <= bp.width and h <= bp.height:
+        crop = arr.copy()
+        origin_x = bp.left
+        origin_y = bp.top
+    else:
+        l = max(0, min(bp.left, w - 1))
+        t = max(0, min(bp.top, h - 1))
+        r_in = min(w - 1, bp.right)
+        b_in = min(h - 1, bp.bottom)
+        crop = arr[t : b_in + 1, l : r_in + 1].copy()
+        origin_x = l
+        origin_y = t
     ch, cw, _ = crop.shape
 
     for rect in layout.hud_subtract_rects():
         inter = intersect_pixel_rects(rect, bp)
         if inter is None:
             continue
-        ly0 = int(max(0, inter.top - t))
-        ly1 = int(min(ch - 1, inter.bottom - t))
-        lx0 = int(max(0, inter.left - l))
-        lx1 = int(min(cw - 1, inter.right - l))
+        ly0 = int(max(0, inter.top - origin_y))
+        ly1 = int(min(ch - 1, inter.bottom - origin_y))
+        lx0 = int(max(0, inter.left - origin_x))
+        lx1 = int(min(cw - 1, inter.right - origin_x))
         if ly0 <= ly1 and lx0 <= lx1:
             crop[ly0 : ly1 + 1, lx0 : lx1 + 1] = 0
 

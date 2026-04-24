@@ -31,7 +31,7 @@ This package contains real-time match execution code.
 
 ## Screen layout reference (perception)
 
-- `configs/screen_layout_reference.yaml` stores **pixel rectangles** in fullscreen capture space for the bottom hand panel, four hand slots, next-card peek, and elixir bar (plus `tick_width_px` per elixir pip). Tuned for a centered ~608×1080 client on a 1920×1080-class capture; duplicate and edit if your geometry differs.
+- `configs/screen_layout_reference.yaml` stores **pixel rectangles** in fullscreen capture space for the bottom hand panel, four hand slots, next-card peek, and the **elixir count digit** (not the full bar). Tuned for a centered ~608×1080 client on a 1920×1080-class capture; duplicate and edit if your geometry differs.
 - `src/perception/screen_layout.py` exposes `load_screen_layout_reference(Path)` and frozen `PixelRect` / `ScreenLayoutReference`.
 
 ## Current modules
