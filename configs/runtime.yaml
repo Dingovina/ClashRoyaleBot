@@ -34,6 +34,16 @@ runtime:
   battlefield_model_path: artifacts/battlefield_cnn.pt
   # HUD layout for CNN ROI (bottom panel with cards/elixir masked out).
   battlefield_model_layout_path: configs/screen_layout_reference.yaml
+  # Per-tick elixir digit CNN on the elixir_number ROI.
+  elixir_model_enabled: true
+  elixir_model_path: artifacts/elixir_cnn.pt
+  elixir_model_layout_path: configs/screen_layout_reference.yaml
+  # Required for pre-play legality gate: block deploy when current elixir < card cost.
+  card_elixir_costs:
+    knight: 3
+    archers: 3
+    fireball: 4
+    giant: 5
   # 0 = wait indefinitely; otherwise wall-clock limit for the pre-match wait loop.
   battlefield_wait_timeout_ms: 120000
   # idle: run ticks but force NO_OP actuation; exit_nonzero: process exits with code 2.

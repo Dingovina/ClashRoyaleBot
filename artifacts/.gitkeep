@@ -1,2 +1,4 @@
 # This directory may hold other generated files; those stay ignored by .gitignore.
 # The default battlefield checkpoint is tracked: battlefield_cnn.pt
+battlefield_cnn.pt
+elixir_cnn.pt

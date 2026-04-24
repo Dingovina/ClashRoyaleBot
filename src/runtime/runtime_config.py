@@ -38,3 +38,7 @@ class RuntimeConfig:
     foreground_title_substrings: tuple[str, ...]
     battlefield_model_path: str | None
     battlefield_model_layout_path: str
+    elixir_model_enabled: bool
+    elixir_model_path: str | None
+    elixir_model_layout_path: str
+    card_elixir_costs: dict[str, float]

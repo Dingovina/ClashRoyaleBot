@@ -20,7 +20,7 @@ The repository is early-stage. Over time it will grow architecture notes, traini
 | **Runtime configuration** | `configs/runtime.yaml` |
 | **Run runtime locally** | `scripts/run_runtime.py` (or `scripts/run_runtime.bat` / `run_runtime.ps1` on Windows) |
 | **Battlefield CNN (match readiness, train, eval)** | `scripts/train_battlefield_classifier.py`, `scripts/eval_battlefield_classifier.py`, `artifacts/battlefield_cnn.pt`, `configs/screen_layout_reference.yaml`, `requirements-ml.txt` |
-| **HUD pixel layout (hand / elixir reference)** | `configs/screen_layout_reference.yaml`, `src/perception/screen_layout.py` |
+| **HUD pixel layout (hand / elixir digit reference)** | `configs/screen_layout_reference.yaml`, `src/perception/screen_layout.py` |
 | **Docker usage** | `docs/docker-basics.md` |
 
 ---

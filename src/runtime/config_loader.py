@@ -9,6 +9,14 @@ from src.runtime.runtime_config import BattlefieldTimeoutBehavior, RuntimeConfig
 from src.runtime.viewport import parse_game_viewport
 
 DEFAULT_BATTLEFIELD_CHECKPOINT = "artifacts/battlefield_cnn.pt"
+DEFAULT_ELIXIR_CHECKPOINT = "artifacts/elixir_cnn.pt"
+DEFAULT_ELIXIR_LAYOUT_PATH = "configs/screen_layout_reference.yaml"
+DEFAULT_CARD_ELIXIR_COSTS: dict[str, float] = {
+    "knight": 3.0,
+    "archers": 3.0,
+    "fireball": 4.0,
+    "giant": 5.0,
+}
 
 TRAIN_BATTLEFIELD_CLASSIFIER_HELP = (
     "Install ML dependencies: pip install -r requirements-ml.txt\n"
@@ -18,6 +26,14 @@ TRAIN_BATTLEFIELD_CLASSIFIER_HELP = (
     "--layout-yaml configs/screen_layout_reference.yaml --out artifacts/battlefield_cnn.pt\n"
     "Optionally set --input-size to match your checkpoint (default 128). "
     "Then set runtime.battlefield_model_path in configs/runtime.yaml if the file is not at the default path."
+)
+
+TRAIN_ELIXIR_CLASSIFIER_HELP = (
+    "Install ML dependencies: pip install -r requirements-ml.txt\n"
+    "Train from labeled PNGs named <elixir>_<index>.png under data/elixir_test, run from repo root:\n"
+    "  python scripts/train_elixir_classifier.py --data-dir data/elixir_test "
+    "--layout-yaml configs/screen_layout_reference.yaml --out artifacts/elixir_cnn.pt\n"
+    "Then set runtime.elixir_model_path in configs/runtime.yaml if the file is not at the default path."
 )
 
 
@@ -44,6 +60,10 @@ def load_runtime_config(path: Path) -> RuntimeConfig:
     model_path = _parse_optional_path(runtime.get("battlefield_model_path"))
     if match_readiness_enabled and not model_path:
         model_path = DEFAULT_BATTLEFIELD_CHECKPOINT
+    elixir_model_enabled = bool(runtime.get("elixir_model_enabled", False))
+    elixir_model_path = _parse_optional_path(runtime.get("elixir_model_path"))
+    if elixir_model_enabled and not elixir_model_path:
+        elixir_model_path = DEFAULT_ELIXIR_CHECKPOINT
 
     cfg = RuntimeConfig(
         tick_interval_ms=int(runtime["tick_interval_ms"]),
@@ -78,6 +98,10 @@ def load_runtime_config(path: Path) -> RuntimeConfig:
         foreground_title_substrings=_parse_foreground_title_substrings(runtime),
         battlefield_model_path=model_path,
         battlefield_model_layout_path=_parse_battlefield_model_layout_path(runtime),
+        elixir_model_enabled=elixir_model_enabled,
+        elixir_model_path=elixir_model_path,
+        elixir_model_layout_path=_parse_elixir_model_layout_path(runtime),
+        card_elixir_costs=_parse_card_elixir_costs(runtime),
     )
     _validate_runtime_config(cfg)
     return cfg
@@ -110,6 +134,34 @@ def _parse_battlefield_model_layout_path(runtime: dict[str, Any]) -> str:
     if explicit:
         return explicit
     return "configs/screen_layout_reference.yaml"
+
+
+def _parse_elixir_model_layout_path(runtime: dict[str, Any]) -> str:
+    raw = runtime.get("elixir_model_layout_path")
+    explicit = _parse_optional_path(raw)
+    if explicit:
+        return explicit
+    return DEFAULT_ELIXIR_LAYOUT_PATH
+
+
+def _parse_card_elixir_costs(runtime: dict[str, Any]) -> dict[str, float]:
+    raw = runtime.get("card_elixir_costs")
+    if raw is None:
+        return dict(DEFAULT_CARD_ELIXIR_COSTS)
+    if not isinstance(raw, dict):
+        raise ValueError("runtime.card_elixir_costs must be a mapping {card_name: cost}")
+    out: dict[str, float] = {}
+    for name, value in raw.items():
+        key = str(name).strip().lower()
+        if not key:
+            raise ValueError("runtime.card_elixir_costs contains an empty card name")
+        cost = float(value)
+        if cost <= 0:
+            raise ValueError(f"runtime.card_elixir_costs[{key}] must be > 0")
+        out[key] = cost
+    if not out:
+        raise ValueError("runtime.card_elixir_costs must not be empty")
+    return out
 
 
 def _is_default_battlefield_checkpoint(path: Path) -> bool:
@@ -146,6 +198,29 @@ def _validate_runtime_config(cfg: RuntimeConfig) -> None:
             raise ValueError(
                 "PyTorch is required for match readiness (battlefield CNN). "
                 "Install with: pip install -r requirements-ml.txt"
+            )
+
+    if cfg.elixir_model_enabled:
+        if not cfg.capture_enabled:
+            raise ValueError("elixir_model_enabled requires capture_enabled to be true")
+        if not cfg.elixir_model_path:
+            raise ValueError("elixir_model_enabled requires elixir_model_path (or default path)")
+        ep = Path(cfg.elixir_model_path)
+        if not ep.is_file():
+            if ep.as_posix().replace("\\", "/").endswith("/artifacts/elixir_cnn.pt"):
+                lead = (
+                    f"Missing default elixir classifier weights: {DEFAULT_ELIXIR_CHECKPOINT} "
+                    f"(resolved as {ep.resolve()}). Create this file by training the model."
+                )
+            else:
+                lead = f"elixir_model_path does not exist or is not a file: {ep}"
+            raise ValueError(f"{lead}\n\n{TRAIN_ELIXIR_CLASSIFIER_HELP}")
+        lp = Path(cfg.elixir_model_layout_path)
+        if not lp.is_file():
+            raise ValueError(f"elixir_model_layout_path does not exist or is not a file: {lp}")
+        if not _torch_available():
+            raise ValueError(
+                "PyTorch is required for elixir CNN inference. Install with: pip install -r requirements-ml.txt"
             )
 
     _validate_match_exit(cfg)

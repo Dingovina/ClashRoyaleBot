@@ -16,7 +16,7 @@ def bgra_masked_bottom_panel_rgb_tensor(
 ) -> torch.Tensor:
     """
     Crop ``bottom_panel`` from a fullscreen BGRA frame, zero-out HUD rects (hand slots,
-    next card, elixir bar), convert to RGB, resize to a square for the battlefield CNN.
+    next card, elixir number digit), convert to RGB, resize to a square for the battlefield CNN.
     """
     bp = layout.bottom_panel
     l = max(0, min(bp.left, frame_width - 1))
@@ -55,7 +55,7 @@ def bgra_masked_bottom_panel_rgb_tensor(
 
 
 def pil_rgb_masked_bottom_panel(image: object, layout: ScreenLayoutReference) -> object:
-    """Same masking as the CNN runtime path, for training from PIL screenshots (RGB)."""
+    """Same masking as the CNN runtime path, for training from PIL screenshots (RGB); elixir digit region zeroed."""
     arr = np.asarray(image.convert("RGB"), dtype=np.uint8)  # type: ignore[union-attr]
     h, w, _ = arr.shape
     bp = layout.bottom_panel

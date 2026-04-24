@@ -8,6 +8,7 @@ from src.runtime.actuation import InputActuator
 from src.runtime.battlefield_evaluate import infer_battlefield_probability
 from src.runtime.candidate_policy import propose_candidate_action
 from src.runtime.capture import FullscreenCapture, frame_for_tick
+from src.runtime.elixir_evaluate import infer_elixir_value
 from src.runtime.match_exit import MatchExitTracker
 from src.runtime.match_readiness import wait_for_match_readiness
 from src.runtime.policy_gate import PolicyGate
@@ -71,11 +72,13 @@ class RuntimeLoop:
                 self.logger.info("runtime_finished reason=match_safety_max_ticks ticks=%s", tick_id)
                 return 0
 
-            want_pixels = (
+            want_match_end_pixels = (
                 end_tracking
                 and self.config.capture_enabled
                 and (tick_id % self.config.match_end_check_every_n_ticks == 0)
             )
+            want_elixir_pixels = self.config.elixir_model_enabled and self.config.capture_enabled
+            want_pixels = want_match_end_pixels or want_elixir_pixels
 
             match_ended = self._run_tick(
                 tick_id=tick_id,
@@ -86,6 +89,7 @@ class RuntimeLoop:
                 actuator=actuator,
                 match_ready=match_ready,
                 include_pixels=want_pixels,
+                include_match_end_pixels=want_match_end_pixels,
                 end_tracker=end_tracker if end_tracking else None,
             )
             if match_ended:
@@ -109,6 +113,7 @@ class RuntimeLoop:
         *,
         match_ready: bool,
         include_pixels: bool,
+        include_match_end_pixels: bool,
         end_tracker: MatchExitTracker | None,
     ) -> bool:
         """
@@ -123,10 +128,33 @@ class RuntimeLoop:
             include_pixels=include_pixels,
         )
 
+        elixir_estimate = min(10.0, tick_id * 0.5)
+        elixir_conf = 0.0
+        elixir_source = "synthetic"
+        if (
+            self.config.elixir_model_enabled
+            and frame.pixels_bgra
+            and self.config.elixir_model_path
+            and frame.width > 0
+            and frame.height > 0
+        ):
+            inferred_elixir, inferred_conf = infer_elixir_value(
+                frame_width=frame.width,
+                frame_height=frame.height,
+                pixels_bgra=frame.pixels_bgra,
+                model_path=self.config.elixir_model_path,
+                model_layout_path=self.config.elixir_model_layout_path,
+                logger=self.logger,
+            )
+            if inferred_conf > 0.0:
+                elixir_estimate = max(0.0, min(10.0, inferred_elixir))
+                elixir_conf = inferred_conf
+                elixir_source = "cnn"
+
         state = RuntimeState(
             tick_id=tick_id,
             timestamp_ms=now_ms,
-            elixir=min(10.0, tick_id * 0.5),
+            elixir=elixir_estimate,
         )
         candidate = propose_candidate_action(state=state, frame=frame)
         decision = gate.decide(state=state, candidate=candidate)
@@ -145,10 +173,13 @@ class RuntimeLoop:
         )
 
         self.logger.info(
-            "tick=%s ts_ms=%s elixir=%.1f frame=%sx%s capture_ms=%s candidate=%s confidence=%s decision=%s reason=%s card=%s zone=%s",
+            "tick=%s ts_ms=%s elixir=%.1f elixir_src=%s elixir_conf=%.3f frame=%sx%s capture_ms=%s "
+            "candidate=%s confidence=%s decision=%s reason=%s card=%s zone=%s",
             state.tick_id,
             state.timestamp_ms,
             state.elixir,
+            elixir_source,
+            elixir_conf,
             frame.width,
             frame.height,
             frame.capture_latency_ms,
@@ -172,7 +203,7 @@ class RuntimeLoop:
         match_ended = False
         if (
             end_tracker is not None
-            and include_pixels
+            and include_match_end_pixels
             and frame.pixels_bgra
             and self.config.battlefield_model_path
             and frame.width > 0

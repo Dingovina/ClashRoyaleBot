@@ -35,6 +35,12 @@ class PolicyGate:
         if candidate.card_index not in {1, 2, 3, 4}:
             return ActionDecision(action_type="no_op", reason="illegal_card_index")
 
+        card_cost = self.config.card_elixir_costs.get(candidate.card_name.lower().strip())
+        if card_cost is None:
+            return ActionDecision(action_type="no_op", reason="unknown_card_elixir_cost")
+        if state.elixir < card_cost:
+            return ActionDecision(action_type="no_op", reason="insufficient_elixir_for_card")
+
         self.last_action_timestamp_ms = state.timestamp_ms
         return ActionDecision(
             action_type="deploy",

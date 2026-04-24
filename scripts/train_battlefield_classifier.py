@@ -5,7 +5,7 @@ Train the tiny battlefield screen classifier on labeled PNGs.
 Expects ``--data-dir/good/*.png`` (in-match, label 1) and ``--data-dir/bad/*.png`` (not in-match, label 0).
 
 The CNN sees only the ``bottom_panel`` region from ``--layout-yaml``, with hand slots,
-next-card peek, and elixir bar pixels zeroed (same preprocessing as runtime inference).
+next-card peek, and elixir count digit pixels zeroed (same preprocessing as runtime inference).
 
 Requires: ``pip install -r requirements-ml.txt``
 
