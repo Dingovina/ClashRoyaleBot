@@ -10,7 +10,7 @@ The model sees only ``elixir_number`` from ``--layout-yaml``.
 Requires: ``pip install -r requirements-ml.txt``
 
 Example (run from repository root, one line):
-  python scripts/train_elixir_classifier.py --data-dir data/elixir_test --layout-yaml configs/screen_layout_reference.yaml --out artifacts/elixir_cnn.pt
+  python scripts/train_elixir_classifier.py --data-dir data/processed/elixir_test --layout-yaml configs/screen_layout_reference.yaml --out artifacts/elixir_cnn.pt
 """
 from __future__ import annotations
 
@@ -79,7 +79,7 @@ def _load_tensor(path: Path, layout, size: int) -> torch.Tensor:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Train elixir digit CNN (0..10)")
-    parser.add_argument("--data-dir", type=Path, default=Path("data/elixir_test"))
+    parser.add_argument("--data-dir", type=Path, default=Path("data/processed/elixir_test"))
     parser.add_argument(
         "--layout-yaml",
         type=Path,

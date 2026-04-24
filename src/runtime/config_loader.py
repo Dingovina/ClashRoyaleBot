@@ -22,7 +22,7 @@ TRAIN_BATTLEFIELD_CLASSIFIER_HELP = (
     "Install ML dependencies: pip install -r requirements-ml.txt\n"
     "Train from labeled PNGs under good/ (in-match) and bad/ (not), run from repo root (one line; "
     "do not use cmd's ^ in PowerShell—it is passed to Python as an argument):\n"
-    "  python scripts/train_battlefield_classifier.py --data-dir data/battlefield_test "
+    "  python scripts/train_battlefield_classifier.py --data-dir data/processed/battlefield_test "
     "--layout-yaml configs/screen_layout_reference.yaml --out artifacts/battlefield_cnn.pt\n"
     "Optionally set --input-size to match your checkpoint (default 128). "
     "Then set runtime.battlefield_model_path in configs/runtime.yaml if the file is not at the default path."
@@ -30,8 +30,8 @@ TRAIN_BATTLEFIELD_CLASSIFIER_HELP = (
 
 TRAIN_ELIXIR_CLASSIFIER_HELP = (
     "Install ML dependencies: pip install -r requirements-ml.txt\n"
-    "Train from labeled PNGs named <elixir>_<index>.png under data/elixir_test, run from repo root:\n"
-    "  python scripts/train_elixir_classifier.py --data-dir data/elixir_test "
+    "Train from labeled PNGs named <elixir>_<index>.png under data/processed/elixir_test, run from repo root:\n"
+    "  python scripts/train_elixir_classifier.py --data-dir data/processed/elixir_test "
     "--layout-yaml configs/screen_layout_reference.yaml --out artifacts/elixir_cnn.pt\n"
     "Then set runtime.elixir_model_path in configs/runtime.yaml if the file is not at the default path."
 )

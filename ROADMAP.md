@@ -9,7 +9,7 @@ This file lists **upcoming work only**. Product constraints, accepted defaults, 
 ## Sprint 3 (Day 8–9) — Elixir digit perception + pre-play elixir gate
 
 - [ ] Elixir digit perception from `elixir_number` region:
-  - [ ] build labeled `data/elixir_test` subset and split for validation,
+  - [ ] build labeled `data/processed/elixir_test` subset and split for validation,
   - [ ] implement robust digit inference for values `0..10`,
   - [ ] emit per-tick `elixir_estimate` and confidence into logs.
 - [ ] Runtime pre-play elixir gate:

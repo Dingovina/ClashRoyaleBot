@@ -12,7 +12,7 @@ Requires: ``pip install -r requirements-ml.txt``
 Example (run from the repository root so ``src`` resolves). In **PowerShell** use a single line: the
 caret (^) is **not** a line-continuation character (unlike cmd.exe), so it is passed to Python and breaks argparse.
 
-  python scripts/train_battlefield_classifier.py --data-dir data/battlefield_test --layout-yaml configs/screen_layout_reference.yaml --out artifacts/battlefield_cnn.pt
+  python scripts/train_battlefield_classifier.py --data-dir data/processed/battlefield_test --layout-yaml configs/screen_layout_reference.yaml --out artifacts/battlefield_cnn.pt
 """
 from __future__ import annotations
 
@@ -82,7 +82,7 @@ def _load_tensor(path: Path, layout, size: int) -> torch.Tensor:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data-dir", type=Path, default=Path("data/battlefield_test"))
+    parser.add_argument("--data-dir", type=Path, default=Path("data/processed/battlefield_test"))
     parser.add_argument(
         "--layout-yaml",
         type=Path,
