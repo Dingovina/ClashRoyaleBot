@@ -18,6 +18,7 @@ The repository is early-stage. Over time it will grow architecture notes, traini
 | **Architecture decisions (ADRs)** | `DECISIONS.md` |
 | **Runtime package (modules, shipped behavior)** | `src/runtime/README.md` |
 | **Runtime configuration** | `configs/runtime.yaml` |
+| **Card elixir costs** | `configs/card_elixir_costs.yaml` |
 | **Run runtime locally** | `scripts/run_runtime.py` (or `scripts/run_runtime.bat` / `run_runtime.ps1` on Windows) |
 | **Battlefield CNN (match readiness, train, eval)** | `scripts/train_battlefield_classifier.py`, `scripts/eval_battlefield_classifier.py`, `artifacts/battlefield_cnn.pt`, `configs/screen_layout_reference.yaml`, `requirements-ml.txt` |
 | **Dataset ROI crop utility** | `scripts/crop_training_images.py` |

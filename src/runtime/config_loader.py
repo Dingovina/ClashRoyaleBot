@@ -11,12 +11,7 @@ from src.runtime.viewport import parse_game_viewport
 DEFAULT_BATTLEFIELD_CHECKPOINT = "artifacts/battlefield_cnn.pt"
 DEFAULT_ELIXIR_CHECKPOINT = "artifacts/elixir_cnn.pt"
 DEFAULT_ELIXIR_LAYOUT_PATH = "configs/screen_layout_reference.yaml"
-DEFAULT_CARD_ELIXIR_COSTS: dict[str, float] = {
-    "knight": 3.0,
-    "archers": 3.0,
-    "fireball": 4.0,
-    "giant": 5.0,
-}
+DEFAULT_CARD_ELIXIR_COSTS_PATH = "configs/card_elixir_costs.yaml"
 
 TRAIN_BATTLEFIELD_CLASSIFIER_HELP = (
     "Install ML dependencies: pip install -r requirements-ml.txt\n"
@@ -101,7 +96,7 @@ def load_runtime_config(path: Path) -> RuntimeConfig:
         elixir_model_enabled=elixir_model_enabled,
         elixir_model_path=elixir_model_path,
         elixir_model_layout_path=_parse_elixir_model_layout_path(runtime),
-        card_elixir_costs=_parse_card_elixir_costs(runtime),
+        card_elixir_costs=_parse_card_elixir_costs(),
     )
     _validate_runtime_config(cfg)
     return cfg
@@ -144,23 +139,22 @@ def _parse_elixir_model_layout_path(runtime: dict[str, Any]) -> str:
     return DEFAULT_ELIXIR_LAYOUT_PATH
 
 
-def _parse_card_elixir_costs(runtime: dict[str, Any]) -> dict[str, float]:
-    raw = runtime.get("card_elixir_costs")
-    if raw is None:
-        return dict(DEFAULT_CARD_ELIXIR_COSTS)
-    if not isinstance(raw, dict):
-        raise ValueError("runtime.card_elixir_costs must be a mapping {card_name: cost}")
+def _parse_card_elixir_costs() -> dict[str, float]:
+    path = Path(DEFAULT_CARD_ELIXIR_COSTS_PATH)
+    if not path.is_file():
+        raise ValueError(f"card elixir costs file does not exist: {path}")
+    raw = _load_yaml(path)
     out: dict[str, float] = {}
     for name, value in raw.items():
         key = str(name).strip().lower()
         if not key:
-            raise ValueError("runtime.card_elixir_costs contains an empty card name")
+            raise ValueError(f"{path}: contains an empty card name")
         cost = float(value)
         if cost <= 0:
-            raise ValueError(f"runtime.card_elixir_costs[{key}] must be > 0")
+            raise ValueError(f"{path}: cost for '{key}' must be > 0")
         out[key] = cost
     if not out:
-        raise ValueError("runtime.card_elixir_costs must not be empty")
+        raise ValueError(f"{path}: must not be empty")
     return out
 
 

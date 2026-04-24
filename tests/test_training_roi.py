@@ -39,6 +39,11 @@ class TrainingRoiTests(unittest.TestCase):
         already_crop = pil_rgb_masked_bottom_panel(already, layout)
         self.assertEqual(already_crop.size, (layout.bottom_panel.width, layout.bottom_panel.height))
 
+        # Some captured datasets can be off by one pixel on height/width.
+        almost = Image.new("RGB", (layout.bottom_panel.width, layout.bottom_panel.height - 1), color=(10, 20, 30))
+        almost_crop = pil_rgb_masked_bottom_panel(almost, layout)
+        self.assertEqual(almost_crop.size, (layout.bottom_panel.width, layout.bottom_panel.height - 1))
+
 
 if __name__ == "__main__":
     unittest.main()

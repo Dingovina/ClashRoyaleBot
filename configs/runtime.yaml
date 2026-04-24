@@ -38,12 +38,7 @@ runtime:
   elixir_model_enabled: true
   elixir_model_path: artifacts/elixir_cnn.pt
   elixir_model_layout_path: configs/screen_layout_reference.yaml
-  # Required for pre-play legality gate: block deploy when current elixir < card cost.
-  card_elixir_costs:
-    knight: 3
-    archers: 3
-    fireball: 4
-    giant: 5
+  # Required for pre-play legality gate: card costs are loaded from configs/card_elixir_costs.yaml.
   # 0 = wait indefinitely; otherwise wall-clock limit for the pre-match wait loop.
   battlefield_wait_timeout_ms: 120000
   # idle: run ticks but force NO_OP actuation; exit_nonzero: process exits with code 2.

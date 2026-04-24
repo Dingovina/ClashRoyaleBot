@@ -64,15 +64,11 @@ def pil_rgb_masked_bottom_panel(image: object, layout: ScreenLayoutReference) ->
     arr = np.asarray(image.convert("RGB"), dtype=np.uint8)  # type: ignore[union-attr]
     h, w, _ = arr.shape
     bp = layout.bottom_panel
-    if w == bp.width and h == bp.height:
+    if w <= bp.width and h <= bp.height:
         crop = arr.copy()
         origin_x = bp.left
         origin_y = bp.top
     else:
-        if w <= bp.left or h <= bp.top:
-            raise ValueError(
-                f"Image size {w}x{h} is too small for bottom_panel origin ({bp.left},{bp.top})"
-            )
         l = max(0, min(bp.left, w - 1))
         t = max(0, min(bp.top, h - 1))
         r_in = min(w - 1, bp.right)
