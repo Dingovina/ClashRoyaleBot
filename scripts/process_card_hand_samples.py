@@ -10,7 +10,7 @@ Input:
 Output:
 - crops saved to ``data/processed/cards/<card-name>_<random-id>.png``
 - empty slots are also saved as ``empty_<random-id>.png``
-- source screenshot is removed after successful processing
+- source screenshot is removed only when ``--delete-source`` is enabled
 """
 from __future__ import annotations
 
@@ -27,6 +27,7 @@ if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
 from src.perception.screen_layout import PixelRect, load_screen_layout_reference
+from src.ml.manifest import write_dataset_manifest
 
 
 def _parse_hand_labels(stem: str) -> tuple[str, str, str, str]:
@@ -76,6 +77,17 @@ def main() -> None:
         default=5,
         help="Random suffix size in bytes (hex length = id-bytes*2)",
     )
+    parser.add_argument(
+        "--delete-source",
+        action="store_true",
+        help="Delete source screenshots after successful processing",
+    )
+    parser.add_argument(
+        "--dataset-id",
+        type=str,
+        default="cards-default",
+        help="Dataset identifier written into dataset_manifest.json",
+    )
     args = parser.parse_args()
 
     if args.id_bytes < 2:
@@ -89,6 +101,7 @@ def main() -> None:
     processed_files = 0
     saved_crops = 0
     skipped_bad_names = 0
+    written_paths: list[Path] = []
 
     for src_path in sorted(args.raw_dir.glob("*.png")):
         try:
@@ -107,9 +120,21 @@ def main() -> None:
             out_path = args.out_dir / out_name
             Image.fromarray(crop).save(out_path, format="PNG")
             saved_crops += 1
+            written_paths.append(out_path)
 
-        src_path.unlink()
+        if args.delete_source:
+            src_path.unlink()
         processed_files += 1
+
+    write_dataset_manifest(
+        manifest_path=args.out_dir / "dataset_manifest.json",
+        dataset_id=args.dataset_id,
+        schema_version=1,
+        source_root=args.raw_dir,
+        processed_root=args.out_dir,
+        files=written_paths,
+        extra={"script": "process_card_hand_samples.py"},
+    )
 
     print(
         "done: files_processed={} crops_saved={} skipped_bad_names={} out_dir={}".format(

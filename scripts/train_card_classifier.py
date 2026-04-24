@@ -24,6 +24,7 @@ if str(_REPO_ROOT) not in sys.path:
 
 from src.perception.card_net import CardHandNet
 from src.perception.card_samples import collect_card_labeled_pngs
+from src.ml.manifest import write_artifact_manifest
 
 
 def _collect_samples(data_dir: Path) -> list[tuple[Path, str]]:
@@ -172,6 +173,13 @@ def main() -> None:
     parser.add_argument("--weight-decay", type=float, default=1e-2)
     parser.add_argument("--val-fraction", type=float, default=0.25)
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--dataset-id", type=str, default="cards-default")
+    parser.add_argument(
+        "--artifact-manifest",
+        type=Path,
+        default=None,
+        help="Optional path for artifact manifest JSON (default: <out>.manifest.json)",
+    )
     parser.add_argument(
         "--no-augment",
         action="store_true",
@@ -323,6 +331,8 @@ def main() -> None:
             "idx_to_label": idx_to_label,
             "label_to_idx": label_to_idx,
             "meta": {
+                "schema_version": 1,
+                "dataset_id": args.dataset_id,
                 "train_samples": len(train_items),
                 "val_samples": len(val_items),
                 "data_dir": str(args.data_dir),
@@ -331,6 +341,22 @@ def main() -> None:
             },
         },
         args.out,
+    )
+    manifest_path = args.artifact_manifest if args.artifact_manifest else args.out.with_suffix(".manifest.json")
+    write_artifact_manifest(
+        manifest_path=manifest_path,
+        model_id="card-hand-net",
+        task="hand_card_classification",
+        dataset_id=args.dataset_id,
+        checkpoint_path=args.out,
+        metrics={"best_loss": best_loss, "best_acc": best_acc},
+        train_args={
+            "epochs": args.epochs,
+            "batch_size": args.batch_size,
+            "lr": args.lr,
+            "weight_decay": args.weight_decay,
+            "seed": args.seed,
+        },
     )
     print(
         "Wrote {} (best_loss={:.4f}, best_acc={:.1%}, classes={})".format(

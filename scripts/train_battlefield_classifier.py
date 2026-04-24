@@ -19,6 +19,7 @@ from __future__ import annotations
 import argparse
 import random
 import sys
+import json
 from pathlib import Path
 
 _REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -33,6 +34,7 @@ from src.perception.battlefield_net import BattlefieldScreenNet
 from src.perception.battlefield_roi import pil_rgb_masked_bottom_panel
 from src.perception.battlefield_samples import collect_battlefield_labeled_pngs
 from src.perception.screen_layout import load_screen_layout_reference
+from src.ml.manifest import write_artifact_manifest
 
 
 def _collect_samples(data_dir: Path) -> list[tuple[Path, int]]:
@@ -96,6 +98,8 @@ def main() -> None:
     parser.add_argument("--weight-decay", type=float, default=1e-2)
     parser.add_argument("--val-fraction", type=float, default=0.25)
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--dataset-id", type=str, default="battlefield-default")
+    parser.add_argument("--artifact-manifest", type=Path, default=None)
     args = parser.parse_args()
 
     torch.manual_seed(args.seed)
@@ -157,6 +161,8 @@ def main() -> None:
             "state_dict": best_state,
             "input_size": args.input_size,
             "meta": {
+                "schema_version": 1,
+                "dataset_id": args.dataset_id,
                 "train_samples": len(train_items),
                 "val_samples": len(val_items),
                 "layout_yaml": str(args.layout_yaml),
@@ -165,7 +171,23 @@ def main() -> None:
         },
         args.out,
     )
-    print(f"Wrote {args.out.resolve()} (best val loss {best_val:.4f})")
+    manifest_path = args.artifact_manifest if args.artifact_manifest else args.out.with_suffix(".manifest.json")
+    write_artifact_manifest(
+        manifest_path=manifest_path,
+        model_id="battlefield-screen-net",
+        task="battlefield_binary_classification",
+        dataset_id=args.dataset_id,
+        checkpoint_path=args.out,
+        metrics={"best_val_loss": best_val},
+        train_args={
+            "epochs": args.epochs,
+            "lr": args.lr,
+            "weight_decay": args.weight_decay,
+            "seed": args.seed,
+            "val_fraction": args.val_fraction,
+        },
+    )
+    print(f"Wrote {args.out.resolve()} (best val loss {best_val:.4f}, meta={json.dumps({'dataset_id': args.dataset_id})})")
 
 
 if __name__ == "__main__":

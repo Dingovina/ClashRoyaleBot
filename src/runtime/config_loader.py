@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 import yaml
 
+from src.runtime.card_registry import load_card_registry
 from src.runtime.runtime_config import BattlefieldTimeoutBehavior, RuntimeConfig
 from src.runtime.viewport import parse_game_viewport
 
@@ -14,6 +16,7 @@ DEFAULT_CARD_CHECKPOINT = "artifacts/card_cnn.pt"
 DEFAULT_ELIXIR_LAYOUT_PATH = "configs/screen_layout_reference.yaml"
 DEFAULT_CARD_LAYOUT_PATH = "configs/screen_layout_reference.yaml"
 DEFAULT_CARD_ELIXIR_COSTS_PATH = "configs/card_elixir_costs.yaml"
+DEFAULT_CARD_REGISTRY_PATH = "configs/card_registry.yaml"
 
 TRAIN_BATTLEFIELD_CLASSIFIER_HELP = (
     "Install ML dependencies: pip install -r requirements-ml.txt\n"
@@ -54,6 +57,7 @@ def load_runtime_config(path: Path) -> RuntimeConfig:
     runtime = data["runtime"]
     board = data["board"]
     card_types = data.get("card_types", {})
+    registry = _parse_card_registry(runtime, card_types)
 
     zones = {
         int(zone_id): (float(anchor[0]), float(anchor[1]))
@@ -84,7 +88,7 @@ def load_runtime_config(path: Path) -> RuntimeConfig:
         match_end_confirm_ticks=max(0, int(runtime.get("match_end_confirm_ticks", 6))),
         match_end_check_every_n_ticks=max(1, int(runtime.get("match_end_check_every_n_ticks", 2))),
         zones=zones,
-        spell_cards=set(card_types.get("spell_cards", [])),
+        spell_cards=registry.spell_cards,
         capture_enabled=bool(runtime.get("capture_enabled", True)),
         capture_debug_save_enabled=bool(runtime.get("capture_debug_save_enabled", True)),
         capture_debug_dir=runtime.get("capture_debug_dir"),
@@ -114,7 +118,9 @@ def load_runtime_config(path: Path) -> RuntimeConfig:
         card_model_layout_path=_parse_card_model_layout_path(runtime),
         hand_tick_log_enabled=bool(runtime.get("hand_tick_log_enabled", True)),
         hand_tick_log_path=_parse_hand_tick_log_path(runtime),
-        card_elixir_costs=_parse_card_elixir_costs(),
+        session_id=_parse_session_id(runtime),
+        card_name_aliases=registry.aliases,
+        card_elixir_costs=registry.elixir_costs,
     )
     _validate_runtime_config(cfg)
     return cfg
@@ -176,6 +182,34 @@ def _parse_card_elixir_costs() -> dict[str, float]:
     return out
 
 
+@dataclass(frozen=True)
+class _RegistryParseResult:
+    aliases: dict[str, str]
+    elixir_costs: dict[str, float]
+    spell_cards: set[str]
+
+
+def _parse_card_registry(runtime: dict[str, Any], card_types: dict[str, Any]) -> _RegistryParseResult:
+    path_raw = runtime.get("card_registry_path", DEFAULT_CARD_REGISTRY_PATH)
+    path = Path(str(path_raw).strip())
+    if path.is_file():
+        reg = load_card_registry(path)
+        return _RegistryParseResult(
+            aliases=reg.aliases,
+            elixir_costs=reg.elixir_costs,
+            spell_cards=set(reg.spell_cards),
+        )
+    # Backward-compatible fallback while configs migrate to card_registry.yaml
+    fallback_costs = _parse_card_elixir_costs()
+    fallback_aliases = {k: k for k in fallback_costs}
+    fallback_spells = {str(x).strip().lower() for x in card_types.get("spell_cards", []) if str(x).strip()}
+    return _RegistryParseResult(
+        aliases=fallback_aliases,
+        elixir_costs=fallback_costs,
+        spell_cards=fallback_spells,
+    )
+
+
 def _parse_card_model_layout_path(runtime: dict[str, Any]) -> str:
     raw = runtime.get("card_model_layout_path")
     explicit = _parse_optional_path(raw)
@@ -190,6 +224,13 @@ def _parse_hand_tick_log_path(runtime: dict[str, Any]) -> str:
     if explicit:
         return explicit
     return "logs/hand_cards_ticks.jsonl"
+
+
+def _parse_session_id(runtime: dict[str, Any]) -> str:
+    raw = _parse_optional_path(runtime.get("session_id"))
+    if raw:
+        return raw
+    return "local-runtime"
 
 
 def _is_default_battlefield_checkpoint(path: Path) -> bool:

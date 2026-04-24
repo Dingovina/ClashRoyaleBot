@@ -48,6 +48,8 @@ def _config() -> RuntimeConfig:
         card_model_layout_path="configs/screen_layout_reference.yaml",
         hand_tick_log_enabled=False,
         hand_tick_log_path="logs/hand_cards_ticks.jsonl",
+        session_id="test-session",
+        card_name_aliases={"knight": "knight", "archers": "archers", "fireball": "fireball", "giant": "giant"},
         card_elixir_costs={"knight": 3.0, "archers": 3.0, "fireball": 4.0, "giant": 5.0},
     )
 

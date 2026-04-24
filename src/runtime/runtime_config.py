@@ -46,4 +46,6 @@ class RuntimeConfig:
     card_model_layout_path: str
     hand_tick_log_enabled: bool
     hand_tick_log_path: str
+    session_id: str
+    card_name_aliases: dict[str, str]
     card_elixir_costs: dict[str, float]

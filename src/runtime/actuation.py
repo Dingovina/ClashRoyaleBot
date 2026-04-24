@@ -5,7 +5,7 @@ import time
 from dataclasses import dataclass
 
 from src.runtime.keyboard_input import send_slot_hotkey
-from src.runtime.types import ActionDecision
+from src.runtime.types import ActionDecision, ActionType
 from src.runtime.viewport import GameViewport
 from src.runtime.zones import ZoneMap
 
@@ -48,7 +48,7 @@ class InputActuator:
         frame_width: int,
         frame_height: int,
     ) -> ActionExecutionResult:
-        if decision.action_type != "deploy":
+        if decision.action_type != ActionType.DEPLOY:
             return ActionExecutionResult(executed=False, reason="decision_no_op")
         if not self.enabled:
             return ActionExecutionResult(executed=False, reason="actuation_disabled")

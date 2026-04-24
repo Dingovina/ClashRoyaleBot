@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from src.runtime.runtime_config import RuntimeConfig
-from src.runtime.types import ActionDecision, CandidateAction, RuntimeState
+from src.runtime.types import ActionDecision, ActionType, CandidateAction, DecisionReason, RuntimeState
 from src.runtime.zones import ZoneMap
 
 
@@ -15,36 +15,56 @@ class PolicyGate:
 
     def decide(self, state: RuntimeState, candidate: CandidateAction | None) -> ActionDecision:
         if candidate is None:
-            return ActionDecision(action_type="no_op", reason="no_candidate")
+            return ActionDecision(action_type=ActionType.NO_OP, reason=DecisionReason.NO_CANDIDATE)
 
         if self._is_rate_limited(state.timestamp_ms):
-            return ActionDecision(action_type="no_op", reason="rate_limited")
+            return ActionDecision(action_type=ActionType.NO_OP, reason=DecisionReason.RATE_LIMITED)
 
         if candidate.confidence < self.config.no_op_confidence_threshold:
-            return ActionDecision(action_type="no_op", reason="confidence_below_no_op_threshold")
+            return ActionDecision(
+                action_type=ActionType.NO_OP,
+                reason=DecisionReason.CONFIDENCE_BELOW_NO_OP_THRESHOLD,
+            )
 
         if candidate.confidence < self.config.action_confidence_threshold and not candidate.urgent_defense:
-            return ActionDecision(action_type="no_op", reason="confidence_uncertainty_band")
+            return ActionDecision(
+                action_type=ActionType.NO_OP,
+                reason=DecisionReason.CONFIDENCE_UNCERTAINTY_BAND,
+            )
 
         if state.elixir < self.config.min_elixir_for_non_urgent_action and not candidate.urgent_defense:
-            return ActionDecision(action_type="no_op", reason="low_elixir_non_urgent")
+            return ActionDecision(
+                action_type=ActionType.NO_OP,
+                reason=DecisionReason.LOW_ELIXIR_NON_URGENT,
+            )
 
         if not self.zone_map.is_zone_valid(candidate.zone_id, candidate.card_class):
-            return ActionDecision(action_type="no_op", reason="illegal_zone_for_card_type")
+            return ActionDecision(
+                action_type=ActionType.NO_OP,
+                reason=DecisionReason.ILLEGAL_ZONE_FOR_CARD_TYPE,
+            )
 
         if candidate.card_index not in {1, 2, 3, 4}:
-            return ActionDecision(action_type="no_op", reason="illegal_card_index")
+            return ActionDecision(action_type=ActionType.NO_OP, reason=DecisionReason.ILLEGAL_CARD_INDEX)
 
-        card_cost = self.config.card_elixir_costs.get(candidate.card_name.lower().strip())
+        raw_name = candidate.card_name.lower().strip()
+        canonical_name = self.config.card_name_aliases.get(raw_name, raw_name)
+        card_cost = self.config.card_elixir_costs.get(canonical_name)
         if card_cost is None:
-            return ActionDecision(action_type="no_op", reason="unknown_card_elixir_cost")
+            return ActionDecision(
+                action_type=ActionType.NO_OP,
+                reason=DecisionReason.UNKNOWN_CARD_ELIXIR_COST,
+            )
         if state.elixir < card_cost:
-            return ActionDecision(action_type="no_op", reason="insufficient_elixir_for_card")
+            return ActionDecision(
+                action_type=ActionType.NO_OP,
+                reason=DecisionReason.INSUFFICIENT_ELIXIR_FOR_CARD,
+            )
 
         self.last_action_timestamp_ms = state.timestamp_ms
         return ActionDecision(
-            action_type="deploy",
-            reason="accepted",
+            action_type=ActionType.DEPLOY,
+            reason=DecisionReason.ACCEPTED,
             card_index=candidate.card_index,
             zone_id=candidate.zone_id,
         )

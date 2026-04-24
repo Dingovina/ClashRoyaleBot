@@ -45,6 +45,8 @@ runtime:
   # Per-tick hand card predictions are also written into a separate JSONL file.
   hand_tick_log_enabled: true
   hand_tick_log_path: logs/hand_cards_ticks.jsonl
+  session_id: local-runtime
+  card_registry_path: configs/card_registry.yaml
   # Required for pre-play legality gate: card costs are loaded from configs/card_elixir_costs.yaml.
   # 0 = wait indefinitely; otherwise wall-clock limit for the pre-match wait loop.
   battlefield_wait_timeout_ms: 120000

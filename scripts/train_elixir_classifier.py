@@ -32,6 +32,7 @@ from src.perception.elixir_net import ElixirDigitNet
 from src.perception.elixir_roi import pil_rgb_elixir_number
 from src.perception.elixir_samples import collect_elixir_labeled_pngs
 from src.perception.screen_layout import load_screen_layout_reference
+from src.ml.manifest import write_artifact_manifest
 
 
 def _collect_samples(data_dir: Path) -> list[tuple[Path, int]]:
@@ -94,6 +95,8 @@ def main() -> None:
     parser.add_argument("--weight-decay", type=float, default=1e-2)
     parser.add_argument("--val-fraction", type=float, default=0.25)
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--dataset-id", type=str, default="elixir-default")
+    parser.add_argument("--artifact-manifest", type=Path, default=None)
     args = parser.parse_args()
 
     torch.manual_seed(args.seed)
@@ -191,6 +194,8 @@ def main() -> None:
             "input_size": args.input_size,
             "num_classes": 11,
             "meta": {
+                "schema_version": 1,
+                "dataset_id": args.dataset_id,
                 "train_samples": len(train_items),
                 "val_samples": len(val_items),
                 "layout_yaml": str(args.layout_yaml),
@@ -199,6 +204,22 @@ def main() -> None:
             },
         },
         args.out,
+    )
+    manifest_path = args.artifact_manifest if args.artifact_manifest else args.out.with_suffix(".manifest.json")
+    write_artifact_manifest(
+        manifest_path=manifest_path,
+        model_id="elixir-digit-net",
+        task="elixir_digit_classification",
+        dataset_id=args.dataset_id,
+        checkpoint_path=args.out,
+        metrics={"best_loss": best_val_loss, "best_acc": best_val_acc},
+        train_args={
+            "epochs": args.epochs,
+            "batch_size": args.batch_size,
+            "lr": args.lr,
+            "weight_decay": args.weight_decay,
+            "seed": args.seed,
+        },
     )
     print(f"Wrote {args.out.resolve()} (best_loss={best_val_loss:.4f}, best_acc={best_val_acc:.1%})")
 
