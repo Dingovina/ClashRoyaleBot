@@ -4,8 +4,8 @@ import argparse
 import logging
 from pathlib import Path
 
-from src.runtime.config_loader import load_runtime_config
-from src.runtime.runtime_service import RuntimeService
+from src.runtime.config.config_loader import load_runtime_config
+from src.runtime.engine.runtime_service import RuntimeService
 
 
 def main() -> None:

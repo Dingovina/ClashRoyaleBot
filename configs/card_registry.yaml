@@ -20,10 +20,6 @@ cards:
   mini-p.e.k.k.a:
     elixir_cost: 4
     class: unit
-    aliases:
-      - mini p.e.k.k.a
-  mushketeer:
+  musketeer:
     elixir_cost: 4
     class: unit
-    aliases:
-      - musketeer

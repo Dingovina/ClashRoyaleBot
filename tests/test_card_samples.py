@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from src.perception.card_samples import collect_card_labeled_pngs
+from src.perception.datasets.card_samples import collect_card_labeled_pngs
 
 
 class CardSamplesTests(unittest.TestCase):

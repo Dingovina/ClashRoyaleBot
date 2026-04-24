@@ -51,4 +51,4 @@ This package contains real-time match execution code.
 - `actuation.py` orchestrates hotkey + placement click (`pyautogui`).
 - `candidate_policy.py` provides scripted candidate actions for reliability tests.
 - `runtime_service.py` runs runtime lifecycle; `tick_orchestrator.py` executes capture → perception → policy/gate → actuation and logs decisions.
-- `__main__.py` starts runtime via `python -m src.runtime` or `python scripts/run_runtime.py` from the repo (see `scripts/run_runtime.*`).
+- `__main__.py` starts runtime via `python -m src.runtime` or `python scripts/runtime/run_runtime.py` from the repo (see `scripts/run_runtime.*`).

@@ -3,9 +3,9 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 
-from src.runtime.card_registry import load_card_registry
-from src.runtime.config_loader import load_runtime_config
-from src.runtime.types import ActionType, DecisionReason, InferenceStatus
+from src.runtime.config.card_registry import load_card_registry
+from src.runtime.config.config_loader import load_runtime_config
+from src.runtime.domain.types import ActionType, DecisionReason, InferenceStatus
 
 
 class RuntimeContractsTests(unittest.TestCase):

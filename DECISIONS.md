@@ -128,7 +128,7 @@ Use this file to record high-impact technical decisions.
   - Optional **`foreground_check_enabled`** on **Windows** compares the foreground window title to `foreground_title_substrings`; other platforms log a one-time skip and do not block on title.
   - If the default weights file is missing, **config load** fails with an error that includes **how to train** the classifier (root `README.md` documents the full flow).
 - Consequences:
-  - Operators must install **`requirements-ml.txt`**, ship a trained `.pt`, and tune `battlefield_score_threshold` using `scripts/eval_battlefield_classifier.py` or live logs.
+  - Operators must install **`requirements-ml.txt`**, ship a trained `.pt`, and tune `battlefield_score_threshold` using `scripts/eval/eval_battlefield_classifier.py` or live logs.
   - Full HD BGRA copies (~8 MB) occur during the wait loop while frames are classified.
 - Alternatives considered:
   - **Heuristic river/turf bands** on the playfield ROI (removed in favor of the CNN for more reliable deck/menu discrimination).

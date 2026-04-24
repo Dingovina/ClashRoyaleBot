@@ -4,14 +4,14 @@ import logging
 import unittest
 from dataclasses import dataclass
 
-from src.runtime.actuation import ActionExecutionResult
-from src.runtime.capture import FrameObservation
-from src.runtime.policy_gate import PolicyGate
-from src.runtime.runtime_config import RuntimeConfig
-from src.runtime.tick_orchestrator import TickOrchestrator
-from src.runtime.types import ActionDecision, InferenceStatus, PerceptionSnapshot
-from src.runtime.viewport import GameViewport
-from src.runtime.zones import build_default_zone_map
+from src.runtime.infra.actuation import ActionExecutionResult
+from src.runtime.infra.capture import FrameObservation
+from src.runtime.domain.policy_gate import PolicyGate
+from src.runtime.config.runtime_config import RuntimeConfig
+from src.runtime.engine.tick_orchestrator import TickOrchestrator
+from src.runtime.domain.types import ActionDecision, InferenceStatus, PerceptionSnapshot
+from src.runtime.infra.viewport import GameViewport
+from src.runtime.domain.zones import build_default_zone_map
 
 
 def _config() -> RuntimeConfig:

@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import unittest
 
-from src.runtime.policy_gate import PolicyGate
-from src.runtime.runtime_config import RuntimeConfig
-from src.runtime.types import CandidateAction, RuntimeState
-from src.runtime.viewport import GameViewport
-from src.runtime.zones import build_default_zone_map
+from src.runtime.domain.policy_gate import PolicyGate
+from src.runtime.config.runtime_config import RuntimeConfig
+from src.runtime.domain.types import CandidateAction, RuntimeState
+from src.runtime.infra.viewport import GameViewport
+from src.runtime.domain.zones import build_default_zone_map
 
 
 def _config() -> RuntimeConfig:

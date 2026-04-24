@@ -6,9 +6,10 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 
-from src.perception.battlefield_roi import pil_rgb_masked_bottom_panel
-from src.perception.elixir_roi import pil_rgb_elixir_number
-from src.perception.screen_layout import load_screen_layout_reference
+from src.perception.roi.battlefield_roi import pil_rgb_masked_bottom_panel
+from src.perception.roi.card_roi import pil_rgb_hand_card
+from src.perception.roi.elixir_roi import pil_rgb_elixir_number
+from src.perception.roi.screen_layout import load_screen_layout_reference
 
 
 class TrainingRoiTests(unittest.TestCase):
@@ -42,6 +43,16 @@ class TrainingRoiTests(unittest.TestCase):
         almost = Image.new("RGB", (layout.bottom_panel.width, layout.bottom_panel.height - 1), color=(10, 20, 30))
         with self.assertRaises(ValueError):
             pil_rgb_masked_bottom_panel(almost, layout)
+
+    def test_card_crop_requires_fullscreen_input(self) -> None:
+        layout = self.layout
+        full = Image.new("RGB", (1920, 1080), color=(22, 33, 44))
+        full_crop = pil_rgb_hand_card(full, layout, slot_index=0)
+        self.assertEqual(full_crop.size, (layout.hand_cards[0].width, layout.hand_cards[0].height))
+
+        already = Image.new("RGB", (layout.hand_cards[0].width, layout.hand_cards[0].height), color=(22, 33, 44))
+        with self.assertRaises(ValueError):
+            pil_rgb_hand_card(already, layout, slot_index=0)
 
 
 if __name__ == "__main__":

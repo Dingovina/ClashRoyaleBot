@@ -6,7 +6,7 @@ from pathlib import Path
 
 import yaml
 
-from src.runtime.config_loader import load_runtime_config
+from src.runtime.config.config_loader import load_runtime_config
 
 
 class ConfigBattlefieldWeightsTests(unittest.TestCase):

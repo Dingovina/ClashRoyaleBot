@@ -19,10 +19,10 @@ The repository is early-stage. Over time it will grow architecture notes, traini
 | **Runtime package (modules, shipped behavior)** | `src/runtime/README.md` |
 | **Runtime configuration** | `configs/runtime.yaml` |
 | **Card registry (costs, aliases, classes)** | `configs/card_registry.yaml` |
-| **Run runtime locally** | `scripts/run_runtime.py` (or `scripts/run_runtime.bat` / `run_runtime.ps1` on Windows) |
-| **Battlefield CNN (match readiness, train, eval)** | `scripts/train_battlefield_classifier.py`, `scripts/eval_battlefield_classifier.py`, `artifacts/battlefield_cnn.pt`, `configs/screen_layout_reference.yaml`, `requirements-ml.txt` |
-| **Hand-card classifier (train, eval)** | `scripts/train_card_classifier.py`, `scripts/eval_card_classifier.py`, `data/processed/cards`, `artifacts/card_cnn.pt` |
-| **Dataset ROI crop utility** | `scripts/crop_training_images.py` |
+| **Run runtime locally** | `scripts/runtime/run_runtime.py` (or `scripts/run_runtime.bat` / `run_runtime.ps1` on Windows) |
+| **Battlefield CNN (match readiness, train, eval)** | `scripts/train/train_battlefield_classifier.py`, `scripts/eval/eval_battlefield_classifier.py`, `artifacts/battlefield_cnn.pt`, `configs/screen_layout_reference.yaml`, `requirements-ml.txt` |
+| **Hand-card classifier (train, eval)** | `scripts/train/train_card_classifier.py`, `scripts/eval/eval_card_classifier.py`, `data/processed/cards`, `artifacts/card_cnn.pt` |
+| **Dataset ROI crop utility** | `scripts/data/crop_training_images.py` |
 | **HUD pixel layout (hand / elixir digit reference)** | `configs/screen_layout_reference.yaml`, `src/perception/screen_layout.py` |
 | **Docker usage** | `docs/docker-basics.md` |
 
@@ -59,11 +59,11 @@ Default confidence and elixir rules are **accepted ADRs** (`DECISIONS.md`, e.g. 
 When `match_readiness_enabled` is true, the runtime loads **`artifacts/battlefield_cnn.pt`** by default (override with `battlefield_model_path` in `configs/runtime.yaml`). If that file is missing, configuration loading fails with instructions to train the model.
 
 1. Install ML dependencies from the repository root: `pip install -r requirements-ml.txt`.
-2. Put raw labeled captures under `data/raw/battlefield_test/good/` (in-match) and `data/raw/battlefield_test/bad/` (not in-match), each as `*.png` (at least four images total; see `scripts/train_battlefield_classifier.py`).
+2. Put raw labeled captures under `data/raw/battlefield_test/good/` (in-match) and `data/raw/battlefield_test/bad/` (not in-match), each as `*.png` (at least four images total; see `scripts/train/train_battlefield_classifier.py`).
 3. Crop raw screenshots into model-ready datasets under `data/processed/`:
 
    ```powershell
-   python scripts/crop_training_images.py --target all
+   python scripts/data/crop_training_images.py --target all
    ```
 
    This reads from `data/raw/` and writes only masked `bottom_panel` (battlefield) and `elixir_number` ROI (elixir) into `data/processed/`.
@@ -71,14 +71,14 @@ When `match_readiness_enabled` is true, the runtime loads **`artifacts/battlefie
 4. Train from the **repository root** (so `src` resolves):
 
    ```powershell
-   python scripts/train_battlefield_classifier.py `
+   python scripts/train/train_battlefield_classifier.py `
      --data-dir data/processed/battlefield_test `
      --layout-yaml configs/screen_layout_reference.yaml `
      --out artifacts/battlefield_cnn.pt
    ```
 
-   **cmd.exe** may use `^` at end-of-line for continuation. Optional flags: `--input-size`, `--epochs`, `--lr` (see `python scripts/train_battlefield_classifier.py --help`).
-5. Tune `battlefield_score_threshold` in `configs/runtime.yaml` after checking probabilities, for example with `python scripts/eval_battlefield_classifier.py --checkpoint artifacts/battlefield_cnn.pt --data-dir data/processed/battlefield_test`.
+   **cmd.exe** may use `^` at end-of-line for continuation. Optional flags: `--input-size`, `--epochs`, `--lr` (see `python scripts/train/train_battlefield_classifier.py --help`).
+5. Tune `battlefield_score_threshold` in `configs/runtime.yaml` after checking probabilities, for example with `python scripts/eval/eval_battlefield_classifier.py --checkpoint artifacts/battlefield_cnn.pt --data-dir data/processed/battlefield_test`.
 6. If your HUD geometry differs from the reference 1920×1080 layout, copy and edit `configs/screen_layout_reference.yaml`, then point `battlefield_model_layout_path` at your file for both training and runtime.
 
 ## Migration notes (legacy cleanup)
