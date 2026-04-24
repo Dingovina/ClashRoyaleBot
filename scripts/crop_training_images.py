@@ -7,6 +7,7 @@ Supported dataset layouts:
 - elixir: ``<raw-root>/elixir_test/*.png`` (``<label>_<index>.png`` names are preserved)
 
 Outputs are written under ``<processed-root>`` with the same relative structure.
+After a successful save, the source PNG is removed from ``<raw-root>``.
 """
 from __future__ import annotations
 
@@ -36,6 +37,7 @@ def _save_cropped(src_path: Path, dst_path: Path, cropper) -> None:
         cropped = cropper(image)
         dst_path.parent.mkdir(parents=True, exist_ok=True)
         cropped.save(dst_path, format="PNG")
+    src_path.unlink()
 
 
 def _crop_battlefield(raw_root: Path, processed_root: Path, layout) -> tuple[int, int]:

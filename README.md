@@ -65,6 +65,7 @@ When `match_readiness_enabled` is true, the runtime loads **`artifacts/battlefie
    ```
 
    This reads from `data/raw/` and writes only masked `bottom_panel` (battlefield) and `elixir_number` ROI (elixir) into `data/processed/`.
+   Successfully processed raw PNGs are removed from `data/raw/`.
 4. Train from the **repository root** (so `src` resolves):
 
    ```powershell
