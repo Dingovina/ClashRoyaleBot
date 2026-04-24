@@ -43,6 +43,11 @@ def _config() -> RuntimeConfig:
         elixir_model_enabled=False,
         elixir_model_path=None,
         elixir_model_layout_path="configs/screen_layout_reference.yaml",
+        card_model_enabled=False,
+        card_model_path=None,
+        card_model_layout_path="configs/screen_layout_reference.yaml",
+        hand_tick_log_enabled=False,
+        hand_tick_log_path="logs/hand_cards_ticks.jsonl",
         card_elixir_costs={"knight": 3.0, "archers": 3.0, "fireball": 4.0, "giant": 5.0},
     )
 

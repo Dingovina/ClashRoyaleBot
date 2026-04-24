@@ -41,4 +41,9 @@ class RuntimeConfig:
     elixir_model_enabled: bool
     elixir_model_path: str | None
     elixir_model_layout_path: str
+    card_model_enabled: bool
+    card_model_path: str | None
+    card_model_layout_path: str
+    hand_tick_log_enabled: bool
+    hand_tick_log_path: str
     card_elixir_costs: dict[str, float]

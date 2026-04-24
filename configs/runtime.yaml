@@ -1,5 +1,5 @@
 runtime:
-  tick_interval_ms: 500
+  tick_interval_ms: 1000
   action_rate_limit_ms: 1000
   action_confidence_threshold: 0.70
   no_op_confidence_threshold: 0.55
@@ -15,7 +15,7 @@ runtime:
   # When false, no PNG frames are written under capture_debug_dir (e.g. data/raw).
   capture_debug_save_enabled: false
   capture_debug_dir: data/raw
-  capture_every_n_ticks: 5
+  capture_every_n_ticks: 10
   actuation_enabled: true
   actuation_dry_run: false
   # Wait after card hotkey before arena click (many UIs need a short gap).
@@ -38,6 +38,13 @@ runtime:
   elixir_model_enabled: true
   elixir_model_path: artifacts/elixir_cnn.pt
   elixir_model_layout_path: configs/screen_layout_reference.yaml
+  # Per-tick hand card classifier on 4 hand slots.
+  card_model_enabled: true
+  card_model_path: artifacts/card_cnn.pt
+  card_model_layout_path: configs/screen_layout_reference.yaml
+  # Per-tick hand card predictions are also written into a separate JSONL file.
+  hand_tick_log_enabled: true
+  hand_tick_log_path: logs/hand_cards_ticks.jsonl
   # Required for pre-play legality gate: card costs are loaded from configs/card_elixir_costs.yaml.
   # 0 = wait indefinitely; otherwise wall-clock limit for the pre-match wait loop.
   battlefield_wait_timeout_ms: 120000

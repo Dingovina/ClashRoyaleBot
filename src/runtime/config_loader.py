@@ -10,7 +10,9 @@ from src.runtime.viewport import parse_game_viewport
 
 DEFAULT_BATTLEFIELD_CHECKPOINT = "artifacts/battlefield_cnn.pt"
 DEFAULT_ELIXIR_CHECKPOINT = "artifacts/elixir_cnn.pt"
+DEFAULT_CARD_CHECKPOINT = "artifacts/card_cnn.pt"
 DEFAULT_ELIXIR_LAYOUT_PATH = "configs/screen_layout_reference.yaml"
+DEFAULT_CARD_LAYOUT_PATH = "configs/screen_layout_reference.yaml"
 DEFAULT_CARD_ELIXIR_COSTS_PATH = "configs/card_elixir_costs.yaml"
 
 TRAIN_BATTLEFIELD_CLASSIFIER_HELP = (
@@ -29,6 +31,13 @@ TRAIN_ELIXIR_CLASSIFIER_HELP = (
     "  python scripts/train_elixir_classifier.py --data-dir data/processed/elixir_test "
     "--layout-yaml configs/screen_layout_reference.yaml --out artifacts/elixir_cnn.pt\n"
     "Then set runtime.elixir_model_path in configs/runtime.yaml if the file is not at the default path."
+)
+
+TRAIN_CARD_CLASSIFIER_HELP = (
+    "Install ML dependencies: pip install -r requirements-ml.txt\n"
+    "Train from hand-slot crops named <card-name>_<random-id>.png under data/processed/cards:\n"
+    "  python scripts/train_card_classifier.py --data-dir data/processed/cards --out artifacts/card_cnn.pt\n"
+    "Then set runtime.card_model_path in configs/runtime.yaml if the file is not at the default path."
 )
 
 
@@ -59,6 +68,10 @@ def load_runtime_config(path: Path) -> RuntimeConfig:
     elixir_model_path = _parse_optional_path(runtime.get("elixir_model_path"))
     if elixir_model_enabled and not elixir_model_path:
         elixir_model_path = DEFAULT_ELIXIR_CHECKPOINT
+    card_model_enabled = bool(runtime.get("card_model_enabled", False))
+    card_model_path = _parse_optional_path(runtime.get("card_model_path"))
+    if card_model_enabled and not card_model_path:
+        card_model_path = DEFAULT_CARD_CHECKPOINT
 
     cfg = RuntimeConfig(
         tick_interval_ms=int(runtime["tick_interval_ms"]),
@@ -96,6 +109,11 @@ def load_runtime_config(path: Path) -> RuntimeConfig:
         elixir_model_enabled=elixir_model_enabled,
         elixir_model_path=elixir_model_path,
         elixir_model_layout_path=_parse_elixir_model_layout_path(runtime),
+        card_model_enabled=card_model_enabled,
+        card_model_path=card_model_path,
+        card_model_layout_path=_parse_card_model_layout_path(runtime),
+        hand_tick_log_enabled=bool(runtime.get("hand_tick_log_enabled", True)),
+        hand_tick_log_path=_parse_hand_tick_log_path(runtime),
         card_elixir_costs=_parse_card_elixir_costs(),
     )
     _validate_runtime_config(cfg)
@@ -158,6 +176,22 @@ def _parse_card_elixir_costs() -> dict[str, float]:
     return out
 
 
+def _parse_card_model_layout_path(runtime: dict[str, Any]) -> str:
+    raw = runtime.get("card_model_layout_path")
+    explicit = _parse_optional_path(raw)
+    if explicit:
+        return explicit
+    return DEFAULT_CARD_LAYOUT_PATH
+
+
+def _parse_hand_tick_log_path(runtime: dict[str, Any]) -> str:
+    raw = runtime.get("hand_tick_log_path")
+    explicit = _parse_optional_path(raw)
+    if explicit:
+        return explicit
+    return "logs/hand_cards_ticks.jsonl"
+
+
 def _is_default_battlefield_checkpoint(path: Path) -> bool:
     norm = path.as_posix().replace("\\", "/")
     return norm == DEFAULT_BATTLEFIELD_CHECKPOINT or norm.endswith("/artifacts/battlefield_cnn.pt")
@@ -215,6 +249,29 @@ def _validate_runtime_config(cfg: RuntimeConfig) -> None:
         if not _torch_available():
             raise ValueError(
                 "PyTorch is required for elixir CNN inference. Install with: pip install -r requirements-ml.txt"
+            )
+
+    if cfg.card_model_enabled:
+        if not cfg.capture_enabled:
+            raise ValueError("card_model_enabled requires capture_enabled to be true")
+        if not cfg.card_model_path:
+            raise ValueError("card_model_enabled requires card_model_path (or default path)")
+        cp = Path(cfg.card_model_path)
+        if not cp.is_file():
+            if cp.as_posix().replace("\\", "/").endswith("/artifacts/card_cnn.pt"):
+                lead = (
+                    f"Missing default card classifier weights: {DEFAULT_CARD_CHECKPOINT} "
+                    f"(resolved as {cp.resolve()}). Create this file by training the model."
+                )
+            else:
+                lead = f"card_model_path does not exist or is not a file: {cp}"
+            raise ValueError(f"{lead}\n\n{TRAIN_CARD_CLASSIFIER_HELP}")
+        lp = Path(cfg.card_model_layout_path)
+        if not lp.is_file():
+            raise ValueError(f"card_model_layout_path does not exist or is not a file: {lp}")
+        if not _torch_available():
+            raise ValueError(
+                "PyTorch is required for card CNN inference. Install with: pip install -r requirements-ml.txt"
             )
 
     _validate_match_exit(cfg)

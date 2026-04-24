@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import json
 import logging
 import time
 from dataclasses import dataclass
+from pathlib import Path
 
 from src.runtime.actuation import InputActuator
 from src.runtime.battlefield_evaluate import infer_battlefield_probability
+from src.runtime.card_evaluate import infer_hand_cards
 from src.runtime.candidate_policy import propose_candidate_action
 from src.runtime.capture import FullscreenCapture, frame_for_tick
 from src.runtime.elixir_evaluate import infer_elixir_value
@@ -21,6 +24,22 @@ from src.runtime.zones import ZoneMap, build_default_zone_map
 class RuntimeLoop:
     config: RuntimeConfig
     logger: logging.Logger
+
+    def _write_hand_tick_log(self, tick_id: int, hand_cards: list[str], hand_confidences: list[float]) -> None:
+        if not self.config.hand_tick_log_enabled:
+            return
+        path = Path(self.config.hand_tick_log_path)
+        try:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            row = {
+                "tick": tick_id,
+                "cards": hand_cards,
+                "confidences": [round(x, 4) for x in hand_confidences],
+            }
+            with path.open("a", encoding="utf-8") as f:
+                f.write(json.dumps(row, ensure_ascii=True) + "\n")
+        except Exception as exc:
+            self.logger.warning("hand_tick_log_write_failed path=%s err=%s", path, exc)
 
     def run(self) -> int:
         zone_map = build_default_zone_map(self.config.zones)
@@ -151,12 +170,39 @@ class RuntimeLoop:
                 elixir_conf = inferred_conf
                 elixir_source = "cnn"
 
+        hand_cards: list[str] = ["unknown", "unknown", "unknown", "unknown"]
+        hand_card_confidences: list[float] = [0.0, 0.0, 0.0, 0.0]
+        if (
+            self.config.card_model_enabled
+            and frame.pixels_bgra
+            and self.config.card_model_path
+            and frame.width > 0
+            and frame.height > 0
+        ):
+            inferred = infer_hand_cards(
+                frame_width=frame.width,
+                frame_height=frame.height,
+                pixels_bgra=frame.pixels_bgra,
+                model_path=self.config.card_model_path,
+                model_layout_path=self.config.card_model_layout_path,
+                logger=self.logger,
+            )
+            if len(inferred) == 4:
+                hand_cards = [name for name, _ in inferred]
+                hand_card_confidences = [conf for _, conf in inferred]
+        self._write_hand_tick_log(tick_id, hand_cards, hand_card_confidences)
+
         state = RuntimeState(
             tick_id=tick_id,
             timestamp_ms=now_ms,
             elixir=elixir_estimate,
         )
-        candidate = propose_candidate_action(state=state, frame=frame)
+        candidate = propose_candidate_action(
+            state=state,
+            frame=frame,
+            hand_cards=hand_cards,
+            hand_confidences=hand_card_confidences,
+        )
         decision = gate.decide(state=state, candidate=candidate)
         if not match_ready:
             decision = ActionDecision(
@@ -174,7 +220,7 @@ class RuntimeLoop:
 
         self.logger.info(
             "tick=%s ts_ms=%s elixir=%.1f elixir_src=%s elixir_conf=%.3f frame=%sx%s capture_ms=%s "
-            "candidate=%s confidence=%s decision=%s reason=%s card=%s zone=%s",
+            "candidate=%s confidence=%s hand=%s hand_conf=%s decision=%s reason=%s card=%s zone=%s",
             state.tick_id,
             state.timestamp_ms,
             state.elixir,
@@ -185,6 +231,8 @@ class RuntimeLoop:
             frame.capture_latency_ms,
             candidate.card_name if candidate else None,
             round(candidate.confidence, 3) if candidate else None,
+            ",".join(hand_cards),
+            ",".join(f"{x:.2f}" for x in hand_card_confidences),
             decision.action_type,
             decision.reason,
             decision.card_index,
