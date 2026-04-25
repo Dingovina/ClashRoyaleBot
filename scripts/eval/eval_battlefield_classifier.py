@@ -103,10 +103,18 @@ def main() -> None:
 
     correct = sum(1 for *_, ok in rows if ok)
     n = len(rows)
+    recall_bf = tp / (tp + fn) if (tp + fn) else 0.0
+    recall_no = tn / (tn + fp) if (tn + fp) else 0.0
     print(f"checkpoint={args.checkpoint.resolve()}")
     print(f"threshold={args.threshold}  input_size={input_size}  n={n}")
     print(f"correct={correct}/{n}  accuracy={correct / n:.1%}")
-    print(f"confusion  tp={tp} fp={fp} tn={tn} fn={fn}  (rows: true pos / false pos / true neg / false neg)")
+    print("per_class_recall:")
+    print(f"  battlefield recall={recall_bf:.1%}  support={tp + fn}")
+    print(f"  non_battlefield recall={recall_no:.1%}  support={tn + fp}")
+    print("confusion_matrix (rows=true, cols=pred):")
+    print("  true\\pred        bf       no")
+    print(f"         bf {tp:8d} {fn:8d}")
+    print(f"         no {fp:8d} {tn:8d}")
     print()
     print(f"{'file':<40} {'label':>5} {'prob':>7} {'pred':>4} {'ok':>3}")
     for name, y_true, prob, y_pred, ok in rows:

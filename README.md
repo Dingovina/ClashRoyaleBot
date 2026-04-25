@@ -22,6 +22,7 @@ The repository is early-stage. Over time it will grow architecture notes, traini
 | **Run runtime locally** | `scripts/runtime/run_runtime.py` (or `scripts/run_runtime.bat` / `run_runtime.ps1` on Windows) |
 | **Battlefield CNN (match readiness, train, eval)** | `scripts/train/train_battlefield_classifier.py`, `scripts/eval/eval_battlefield_classifier.py`, `artifacts/battlefield_cnn.pt`, `configs/screen_layout_reference.yaml`, `requirements-ml.txt` |
 | **Hand-card classifier (train, eval)** | `scripts/train/train_card_classifier.py`, `scripts/eval/eval_card_classifier.py`, `data/processed/train/cards_train`, `artifacts/card_cnn.pt` |
+| **Elixir classifier (train, eval)** | `scripts/train/train_elixir_classifier.py`, `scripts/eval/eval_elixir_classifier.py`, `data/processed/train/elixir_test`, `artifacts/elixir_cnn.pt` |
 | **Dataset ROI crop utility** | `scripts/data/crop_training_images.py` |
 | **HUD pixel layout (hand / elixir digit reference)** | `configs/screen_layout_reference.yaml`, `src/perception/screen_layout.py` |
 | **Docker usage** | `docs/docker-basics.md` |

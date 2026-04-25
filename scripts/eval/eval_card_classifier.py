@@ -64,17 +64,21 @@ def main() -> None:
         raise SystemExit(str(exc)) from exc
 
     rows: list[tuple[str, str, str, float, bool]] = []
+    confusion: dict[str, dict[str, int]] = {label: {p: 0 for p in idx_to_label} for label in idx_to_label}
+    unknown_true_labels: set[str] = set()
     correct = 0
     with torch.inference_mode():
         for path, true_name in samples:
             if true_name not in label_to_idx:
                 rows.append((path.name, true_name, "<unknown-class>", 0.0, False))
+                unknown_true_labels.add(true_name)
                 continue
             x = _load_tensor(path, input_size, grayscale_input=grayscale_input).unsqueeze(0)
             probs = torch.softmax(net(x).squeeze(0), dim=0)
             conf, pred_idx = torch.max(probs, dim=0)
             pred_name = idx_to_label[int(pred_idx.item())]
             ok = pred_name == true_name
+            confusion[true_name][pred_name] += 1
             rows.append((path.name, true_name, pred_name, float(conf.item()), ok))
             if ok:
                 correct += 1
@@ -83,6 +87,21 @@ def main() -> None:
     print(f"checkpoint={args.checkpoint.resolve()}")
     print(f"grayscale_input={grayscale_input}")
     print(f"n={n} correct={correct} accuracy={correct / max(1, n):.1%}")
+    if unknown_true_labels:
+        print(f"unknown_true_labels={sorted(unknown_true_labels)}")
+    print()
+    print("per_class_recall:")
+    for label in idx_to_label:
+        tp = confusion[label][label]
+        total_true = sum(confusion[label].values())
+        recall = tp / total_true if total_true else 0.0
+        print(f"  {label:<18} recall={recall:>6.1%}  support={total_true}")
+    print()
+    print("confusion_matrix (rows=true, cols=pred):")
+    print("  true\\pred " + " ".join(f"{label:>8}" for label in idx_to_label))
+    for true_label in idx_to_label:
+        row = " ".join(f"{confusion[true_label][pred_label]:>8d}" for pred_label in idx_to_label)
+        print(f"  {true_label:>9} {row}")
     print()
     print(f"{'file':<44} {'true':<18} {'pred':<18} {'conf':>7} {'ok':>3}")
     for file_name, y_true, y_pred, conf, ok in rows:
