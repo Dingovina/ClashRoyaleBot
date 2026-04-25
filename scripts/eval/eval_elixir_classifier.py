@@ -35,7 +35,7 @@ def _load_tensor(path: Path, size: int) -> torch.Tensor:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Evaluate elixir classifier")
     parser.add_argument("--checkpoint", type=Path, required=True)
-    parser.add_argument("--data-dir", type=Path, default=Path("data/processed/train/elixir_train"))
+    parser.add_argument("--data-dir", type=Path, default=Path("data/processed/val/elixir_val"))
     args = parser.parse_args()
 
     ckpt = _torch_load(args.checkpoint)

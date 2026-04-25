@@ -2,20 +2,19 @@
 """
 Train a tiny CNN that predicts current elixir value (0..10) from cropped elixir-number ROI PNGs.
 
-Expects PNG files named ``<elixir>_<index>.png`` under ``--data-dir``.
+Expects PNG files named ``<elixir>_<index>.png`` under ``--train-data-dir`` and ``--val-data-dir``.
 Example: ``7_2.png`` means label 7.
 
 Requires: ``pip install -r requirements-ml.txt``
 
 Example (run from repository root, one line):
-  python scripts/train/train_elixir_classifier.py --data-dir data/processed/train/elixir_train --out artifacts/elixir_cnn.pt
+  python scripts/train/train_elixir_classifier.py --train-data-dir data/processed/train/elixir_train --val-data-dir data/processed/val/elixir_val --out artifacts/elixir_cnn.pt
 """
 from __future__ import annotations
 
 import argparse
 import random
 import sys
-from collections import defaultdict
 from pathlib import Path
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -31,39 +30,14 @@ from src.perception.datasets.elixir_samples import collect_elixir_labeled_pngs
 from src.ml.manifest import write_artifact_manifest
 
 
-def _collect_samples(data_dir: Path) -> list[tuple[Path, int]]:
+def _collect_samples(data_dir: Path, *, min_count: int) -> list[tuple[Path, int]]:
     try:
         samples = collect_elixir_labeled_pngs(data_dir)
     except ValueError as exc:
         raise SystemExit(str(exc)) from exc
-    if len(samples) < 8:
-        raise SystemExit(f"Need at least 8 labeled PNGs under {data_dir}, found {len(samples)}")
+    if len(samples) < min_count:
+        raise SystemExit(f"Need at least {min_count} labeled PNGs under {data_dir}, found {len(samples)}")
     return samples
-
-
-def _stratified_split(
-    samples: list[tuple[Path, int]], *, val_fraction: float, seed: int
-) -> tuple[list[tuple[Path, int]], list[tuple[Path, int]]]:
-    rng = random.Random(seed)
-    by_cls: dict[int, list[Path]] = defaultdict(list)
-    for path, y in samples:
-        by_cls[y].append(path)
-
-    train: list[tuple[Path, int]] = []
-    val: list[tuple[Path, int]] = []
-    for cls in sorted(by_cls):
-        paths = by_cls[cls].copy()
-        rng.shuffle(paths)
-        if len(paths) == 1:
-            train.append((paths[0], cls))
-            continue
-        n_val = max(1, int(round(len(paths) * val_fraction)))
-        n_val = min(n_val, len(paths) - 1)
-        val_paths = paths[:n_val]
-        train_paths = paths[n_val:]
-        train.extend((p, cls) for p in train_paths)
-        val.extend((p, cls) for p in val_paths)
-    return train, val
 
 
 def _load_tensor(path: Path, size: int) -> torch.Tensor:
@@ -75,14 +49,14 @@ def _load_tensor(path: Path, size: int) -> torch.Tensor:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Train elixir digit CNN (0..10)")
-    parser.add_argument("--data-dir", type=Path, default=Path("data/processed/train/elixir_train"))
+    parser.add_argument("--train-data-dir", type=Path, default=Path("data/processed/train/elixir_train"))
+    parser.add_argument("--val-data-dir", type=Path, default=Path("data/processed/val/elixir_val"))
     parser.add_argument("--out", type=Path, default=Path("artifacts/elixir_cnn.pt"))
     parser.add_argument("--input-size", type=int, default=64)
     parser.add_argument("--epochs", type=int, default=200)
     parser.add_argument("--batch-size", type=int, default=8)
     parser.add_argument("--lr", type=float, default=1e-3)
     parser.add_argument("--weight-decay", type=float, default=1e-2)
-    parser.add_argument("--val-fraction", type=float, default=0.25)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--dataset-id", type=str, default="elixir-default")
     parser.add_argument("--artifact-manifest", type=Path, default=None)
@@ -91,8 +65,15 @@ def main() -> None:
     torch.manual_seed(args.seed)
     random.seed(args.seed)
 
-    samples = _collect_samples(args.data_dir)
-    train_items, val_items = _stratified_split(samples, val_fraction=args.val_fraction, seed=args.seed)
+    train_items = _collect_samples(args.train_data_dir, min_count=8)
+    val_items = _collect_samples(args.val_data_dir, min_count=1)
+    train_labels = {y for _, y in train_items}
+    unknown_val_labels = sorted({y for _, y in val_items if y not in train_labels})
+    if unknown_val_labels:
+        raise SystemExit(
+            "Validation set contains labels missing in train set: "
+            f"{unknown_val_labels}. Add matching train samples first."
+        )
 
     device = torch.device("cpu")
     net = ElixirDigitNet().to(device)
@@ -145,32 +126,18 @@ def main() -> None:
 
         avg_train_loss = total_loss / max(1, total_seen)
         train_acc = total_correct / max(1, total_seen)
-        improved = False
-        if val_items:
-            if vloss < best_val_loss:
-                improved = True
-        else:
-            if avg_train_loss < best_val_loss:
-                improved = True
-        if improved:
-            best_val_loss = vloss if val_items else avg_train_loss
-            best_val_acc = vacc if val_items else train_acc
+        if vloss < best_val_loss:
+            best_val_loss = vloss
+            best_val_acc = vacc
             best_state = {k: v.cpu().clone() for k, v in net.state_dict().items()}
 
         if (epoch + 1) % 10 == 0 or epoch == 0:
-            if val_items:
-                print(
-                    "epoch={:3d} train_loss={:.4f} train_acc={:.1%} val_loss={:.4f} "
-                    "val_acc={:.1%} best_val_loss={:.4f} best_val_acc={:.1%}".format(
-                        epoch + 1, avg_train_loss, train_acc, vloss, vacc, best_val_loss, best_val_acc
-                    )
+            print(
+                "epoch={:3d} train_loss={:.4f} train_acc={:.1%} val_loss={:.4f} "
+                "val_acc={:.1%} best_val_loss={:.4f} best_val_acc={:.1%}".format(
+                    epoch + 1, avg_train_loss, train_acc, vloss, vacc, best_val_loss, best_val_acc
                 )
-            else:
-                print(
-                    "epoch={:3d} train_loss={:.4f} train_acc={:.1%} best_loss={:.4f}".format(
-                        epoch + 1, avg_train_loss, train_acc, best_val_loss
-                    )
-                )
+            )
 
     if best_state is None:
         best_state = net.state_dict()
@@ -186,6 +153,8 @@ def main() -> None:
                 "dataset_id": args.dataset_id,
                 "train_samples": len(train_items),
                 "val_samples": len(val_items),
+                "train_data_dir": str(args.train_data_dir),
+                "val_data_dir": str(args.val_data_dir),
                 "roi": "elixir_number",
                 "labels": "filename_prefix_0_to_10",
             },

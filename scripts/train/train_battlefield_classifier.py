@@ -2,14 +2,14 @@
 """
 Train the tiny battlefield screen classifier on cropped battlefield ROI PNGs.
 
-Expects ``--data-dir/good/*.png`` (in-match, label 1) and ``--data-dir/bad/*.png`` (not in-match, label 0).
+Expects ``--train-data-dir/{good,bad}/*.png`` for training and ``--val-data-dir/{good,bad}/*.png`` for validation.
 
 Requires: ``pip install -r requirements-ml.txt``
 
 Example (run from the repository root so ``src`` resolves). In **PowerShell** use a single line: the
 caret (^) is **not** a line-continuation character (unlike cmd.exe), so it is passed to Python and breaks argparse.
 
-  python scripts/train/train_battlefield_classifier.py --data-dir data/processed/train/battlefield_train --out artifacts/battlefield_cnn.pt
+  python scripts/train/train_battlefield_classifier.py --train-data-dir data/processed/train/battlefield_train --val-data-dir data/processed/val/battlefield_val --out artifacts/battlefield_cnn.pt
 """
 from __future__ import annotations
 
@@ -32,41 +32,16 @@ from src.perception.datasets.battlefield_samples import collect_battlefield_labe
 from src.ml.manifest import write_artifact_manifest
 
 
-def _collect_samples(data_dir: Path) -> list[tuple[Path, int]]:
+def _collect_samples(data_dir: Path, *, min_count: int) -> list[tuple[Path, int]]:
     try:
         samples = collect_battlefield_labeled_pngs(data_dir)
     except ValueError as exc:
         raise SystemExit(str(exc)) from exc
-    if len(samples) < 4:
+    if len(samples) < min_count:
         raise SystemExit(
-            f"Need at least 4 labeled PNGs under {data_dir}/good and {data_dir}/bad, found {len(samples)}"
+            f"Need at least {min_count} labeled PNGs under {data_dir}/good and {data_dir}/bad, found {len(samples)}"
         )
     return samples
-
-
-def _stratified_split(
-    samples: list[tuple[Path, int]], *, val_fraction: float, seed: int
-) -> tuple[list[tuple[Path, int]], list[tuple[Path, int]]]:
-    rng = random.Random(seed)
-    by_cls: dict[int, list[Path]] = {0: [], 1: []}
-    for path, y in samples:
-        by_cls[y].append(path)
-    train: list[tuple[Path, int]] = []
-    val: list[tuple[Path, int]] = []
-    for cls, paths in by_cls.items():
-        paths = paths.copy()
-        rng.shuffle(paths)
-        n_val = max(1, int(round(len(paths) * val_fraction)))
-        if len(paths) <= n_val:
-            n_val = max(1, len(paths) - 1) if len(paths) > 1 else 0
-        val_paths = paths[:n_val]
-        train_paths = paths[n_val:]
-        if not train_paths:
-            train_paths = val_paths[:-1]
-            val_paths = val_paths[-1:]
-        train.extend((p, cls) for p in train_paths)
-        val.extend((p, cls) for p in val_paths)
-    return train, val
 
 
 def _load_tensor(path: Path, size: int) -> torch.Tensor:
@@ -78,13 +53,13 @@ def _load_tensor(path: Path, size: int) -> torch.Tensor:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data-dir", type=Path, default=Path("data/processed/train/battlefield_train"))
+    parser.add_argument("--train-data-dir", type=Path, default=Path("data/processed/train/battlefield_train"))
+    parser.add_argument("--val-data-dir", type=Path, default=Path("data/processed/val/battlefield_val"))
     parser.add_argument("--out", type=Path, default=Path("artifacts/battlefield_cnn.pt"))
     parser.add_argument("--input-size", type=int, default=128)
     parser.add_argument("--epochs", type=int, default=120)
     parser.add_argument("--lr", type=float, default=1e-3)
     parser.add_argument("--weight-decay", type=float, default=1e-2)
-    parser.add_argument("--val-fraction", type=float, default=0.25)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--dataset-id", type=str, default="battlefield-default")
     parser.add_argument("--artifact-manifest", type=Path, default=None)
@@ -93,8 +68,8 @@ def main() -> None:
     torch.manual_seed(args.seed)
     random.seed(args.seed)
 
-    samples = _collect_samples(args.data_dir)
-    train_items, val_items = _stratified_split(samples, val_fraction=args.val_fraction, seed=args.seed)
+    train_items = _collect_samples(args.train_data_dir, min_count=4)
+    val_items = _collect_samples(args.val_data_dir, min_count=2)
 
     device = torch.device("cpu")
     net = BattlefieldScreenNet().to(device)
@@ -152,6 +127,8 @@ def main() -> None:
                 "dataset_id": args.dataset_id,
                 "train_samples": len(train_items),
                 "val_samples": len(val_items),
+                "train_data_dir": str(args.train_data_dir),
+                "val_data_dir": str(args.val_data_dir),
                 "roi": "masked_bottom_panel",
             },
         },
@@ -170,7 +147,6 @@ def main() -> None:
             "lr": args.lr,
             "weight_decay": args.weight_decay,
             "seed": args.seed,
-            "val_fraction": args.val_fraction,
         },
     )
     print(f"Wrote {args.out.resolve()} (best val loss {best_val:.4f}, meta={json.dumps({'dataset_id': args.dataset_id})})")

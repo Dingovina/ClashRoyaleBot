@@ -2,7 +2,7 @@
 """
 Train a CNN that predicts card identity from hand-slot crops.
 
-Expects files named ``<card-name>_<random-id>.png`` under ``--data-dir``.
+Expects files named ``<card-name>_<random-id>.png`` under ``--train-data-dir`` and ``--val-data-dir``.
 Example: ``mini-p.e.k.k.a_a1b2c3.png``.
 """
 from __future__ import annotations
@@ -11,7 +11,6 @@ import argparse
 import json
 import random
 import sys
-from collections import defaultdict
 from pathlib import Path
 
 import torch
@@ -27,13 +26,13 @@ from src.perception.datasets.card_samples import collect_card_labeled_pngs
 from src.ml.manifest import write_artifact_manifest
 
 
-def _collect_samples(data_dir: Path) -> list[tuple[Path, str]]:
+def _collect_samples(data_dir: Path, *, min_count: int) -> list[tuple[Path, str]]:
     try:
         samples = collect_card_labeled_pngs(data_dir)
     except ValueError as exc:
         raise SystemExit(str(exc)) from exc
-    if len(samples) < 20:
-        raise SystemExit(f"Need at least 20 labeled card PNGs under {data_dir}, found {len(samples)}")
+    if len(samples) < min_count:
+        raise SystemExit(f"Need at least {min_count} labeled card PNGs under {data_dir}, found {len(samples)}")
     return samples
 
 
@@ -42,29 +41,6 @@ def _label_index(samples: list[tuple[Path, str]]) -> tuple[dict[str, int], list[
     if len(labels) < 2:
         raise SystemExit("Need at least 2 distinct card labels for training")
     return {name: i for i, name in enumerate(labels)}, labels
-
-
-def _stratified_split(
-    samples: list[tuple[Path, str]], val_fraction: float, seed: int
-) -> tuple[list[tuple[Path, str]], list[tuple[Path, str]]]:
-    rng = random.Random(seed)
-    by_cls: dict[str, list[Path]] = defaultdict(list)
-    for path, name in samples:
-        by_cls[name].append(path)
-
-    train: list[tuple[Path, str]] = []
-    val: list[tuple[Path, str]] = []
-    for cls in sorted(by_cls):
-        paths = by_cls[cls].copy()
-        rng.shuffle(paths)
-        if len(paths) == 1:
-            train.append((paths[0], cls))
-            continue
-        n_val = max(1, int(round(len(paths) * val_fraction)))
-        n_val = min(n_val, len(paths) - 1)
-        val.extend((p, cls) for p in paths[:n_val])
-        train.extend((p, cls) for p in paths[n_val:])
-    return train, val
 
 
 def _apply_card_state_augmentation(
@@ -164,14 +140,14 @@ def _to_tensor(
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Train hand-card classifier from cropped slot PNGs")
-    parser.add_argument("--data-dir", type=Path, default=Path("data/processed/train/cards_train"))
+    parser.add_argument("--train-data-dir", type=Path, default=Path("data/processed/train/cards_train"))
+    parser.add_argument("--val-data-dir", type=Path, default=Path("data/processed/val/cards_val"))
     parser.add_argument("--out", type=Path, default=Path("artifacts/card_cnn.pt"))
     parser.add_argument("--input-size", type=int, default=96)
     parser.add_argument("--epochs", type=int, default=220)
     parser.add_argument("--batch-size", type=int, default=16)
     parser.add_argument("--lr", type=float, default=1e-3)
     parser.add_argument("--weight-decay", type=float, default=1e-2)
-    parser.add_argument("--val-fraction", type=float, default=0.25)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--dataset-id", type=str, default="cards-default")
     parser.add_argument(
@@ -226,9 +202,15 @@ def main() -> None:
     random.seed(args.seed)
     torch.manual_seed(args.seed)
 
-    samples = _collect_samples(args.data_dir)
-    label_to_idx, idx_to_label = _label_index(samples)
-    train_items, val_items = _stratified_split(samples, val_fraction=args.val_fraction, seed=args.seed)
+    train_items = _collect_samples(args.train_data_dir, min_count=20)
+    val_items = _collect_samples(args.val_data_dir, min_count=1)
+    label_to_idx, idx_to_label = _label_index(train_items)
+    unknown_val_labels = sorted({name for _, name in val_items if name not in label_to_idx})
+    if unknown_val_labels:
+        raise SystemExit(
+            "Validation set contains labels missing in train set: "
+            f"{unknown_val_labels}. Add matching train samples first."
+        )
 
     device = torch.device("cpu")
     net = CardHandNet(num_classes=len(idx_to_label)).to(device)
@@ -305,10 +287,10 @@ def main() -> None:
 
         train_loss = total_loss / max(1, total_seen)
         train_acc = total_correct / max(1, total_seen)
-        improved = vloss < best_loss if val_items else train_loss < best_loss
+        improved = vloss < best_loss
         if improved:
-            best_loss = vloss if val_items else train_loss
-            best_acc = vacc if val_items else train_acc
+            best_loss = vloss
+            best_acc = vacc
             best_state = {k: v.cpu().clone() for k, v in net.state_dict().items()}
 
         if epoch == 0 or (epoch + 1) % 10 == 0:
@@ -335,7 +317,8 @@ def main() -> None:
                 "dataset_id": args.dataset_id,
                 "train_samples": len(train_items),
                 "val_samples": len(val_items),
-                "data_dir": str(args.data_dir),
+                "train_data_dir": str(args.train_data_dir),
+                "val_data_dir": str(args.val_data_dir),
                 "task": "hand_card_classification",
                 "grayscale_input": not args.rgb_input,
             },

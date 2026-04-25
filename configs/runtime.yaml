@@ -14,9 +14,9 @@ runtime:
 
   # --- Capture/debug ---
   # When false, no PNG frames are written under capture_debug_dir (e.g. data/raw).
-  capture_debug_save_enabled: false
+  capture_debug_save_enabled: true
   capture_debug_dir: data/raw
-  capture_every_n_ticks: 10
+  capture_every_n_ticks: 5
 
   # --- Actuation ---
   # Always live in this runtime profile.
