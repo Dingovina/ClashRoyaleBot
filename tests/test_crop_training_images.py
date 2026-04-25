@@ -72,7 +72,7 @@ class CropTrainingImagesTests(unittest.TestCase):
                 ],
                 check=True,
             )
-            out_file = root / "processed" / "train" / "battlefield_test" / "good" / good_name
+            out_file = root / "processed" / "train" / "battlefield_train" / "good" / good_name
             self.assertTrue(out_file.is_file())
             self.assertFalse((raw / good_name).exists())
             self.assertTrue((raw / check_name).exists())

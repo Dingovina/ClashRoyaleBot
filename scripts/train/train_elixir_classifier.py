@@ -8,7 +8,7 @@ Example: ``7_2.png`` means label 7.
 Requires: ``pip install -r requirements-ml.txt``
 
 Example (run from repository root, one line):
-  python scripts/train/train_elixir_classifier.py --data-dir data/processed/train/elixir_test --out artifacts/elixir_cnn.pt
+  python scripts/train/train_elixir_classifier.py --data-dir data/processed/train/elixir_train --out artifacts/elixir_cnn.pt
 """
 from __future__ import annotations
 
@@ -75,7 +75,7 @@ def _load_tensor(path: Path, size: int) -> torch.Tensor:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Train elixir digit CNN (0..10)")
-    parser.add_argument("--data-dir", type=Path, default=Path("data/processed/train/elixir_test"))
+    parser.add_argument("--data-dir", type=Path, default=Path("data/processed/train/elixir_train"))
     parser.add_argument("--out", type=Path, default=Path("artifacts/elixir_cnn.pt"))
     parser.add_argument("--input-size", type=int, default=64)
     parser.add_argument("--epochs", type=int, default=200)

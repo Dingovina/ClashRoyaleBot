@@ -21,6 +21,14 @@ def _cards_dir_name(split: str) -> str:
     return f"cards_{split}"
 
 
+def _battlefield_dir_name(split: str) -> str:
+    return f"battlefield_{split}"
+
+
+def _elixir_dir_name(split: str) -> str:
+    return f"elixir_{split}"
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Crop validated match screenshots into split datasets")
     parser.add_argument(
@@ -85,7 +93,7 @@ def main() -> None:
     to_process = [p for p in source_files if not p.name.startswith("CHECK_")]
     skipped_check = len(source_files) - len(to_process)
     if args.bf:
-        print("warning: --bf always writes into battlefield_test/good")
+        print("warning: --bf always writes into battlefield_<split>/good")
 
     total_processed = 0
     total_skipped = skipped_check
@@ -101,7 +109,7 @@ def main() -> None:
             layout_yaml=args.layout_yaml,
             delete_source=False,
             source_paths=to_process,
-            output_good_dir=split_root / "battlefield_test" / "good",
+            output_good_dir=split_root / _battlefield_dir_name(split) / "good",
             include_bad_subset=False,
         )
         total_processed += result.processed
@@ -116,7 +124,7 @@ def main() -> None:
             layout_yaml=args.layout_yaml,
             delete_source=False,
             source_paths=to_process,
-            output_dir=split_root / "elixir_test",
+            output_dir=split_root / _elixir_dir_name(split),
         )
         total_processed += result.processed
         total_skipped += result.skipped

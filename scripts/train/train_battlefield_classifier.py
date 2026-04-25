@@ -9,7 +9,7 @@ Requires: ``pip install -r requirements-ml.txt``
 Example (run from the repository root so ``src`` resolves). In **PowerShell** use a single line: the
 caret (^) is **not** a line-continuation character (unlike cmd.exe), so it is passed to Python and breaks argparse.
 
-  python scripts/train/train_battlefield_classifier.py --data-dir data/processed/train/battlefield_test --out artifacts/battlefield_cnn.pt
+  python scripts/train/train_battlefield_classifier.py --data-dir data/processed/train/battlefield_train --out artifacts/battlefield_cnn.pt
 """
 from __future__ import annotations
 
@@ -78,7 +78,7 @@ def _load_tensor(path: Path, size: int) -> torch.Tensor:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data-dir", type=Path, default=Path("data/processed/train/battlefield_test"))
+    parser.add_argument("--data-dir", type=Path, default=Path("data/processed/train/battlefield_train"))
     parser.add_argument("--out", type=Path, default=Path("artifacts/battlefield_cnn.pt"))
     parser.add_argument("--input-size", type=int, default=128)
     parser.add_argument("--epochs", type=int, default=120)
