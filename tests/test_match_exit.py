@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import unittest
 
-from src.runtime.match_exit import MatchExitTracker
+from src.runtime.domain.match_exit import MatchExitTracker
 
 
 class MatchExitTrackerTests(unittest.TestCase):

@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import unittest
 
-from src.runtime.actuation import InputActuator, resolve_card_hotkey
-from src.runtime.viewport import AnchorRect, GameViewport
-from src.runtime.types import ActionDecision
-from src.runtime.zones import build_default_zone_map
+from src.runtime.infra.actuation import InputActuator, resolve_card_hotkey
+from src.runtime.infra.viewport import AnchorRect, GameViewport
+from src.runtime.domain.types import ActionDecision
+from src.runtime.domain.zones import build_default_zone_map
 
 
 class ActuationTests(unittest.TestCase):

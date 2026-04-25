@@ -121,14 +121,14 @@ Use this file to record high-impact technical decisions.
   - The runtime must not send card hotkeys or placement clicks while the operator is still on the desktop, launcher, or main menu.
   - A small binary classifier on a fixed HUD crop is acceptable for this gate; tuning stays YAML-driven with clear operator logs.
 - Decision:
-  - Add a **pre-loop wait** on live fullscreen capture when `match_readiness_enabled` is true (requires `capture_enabled`).
+  - Add a **pre-loop wait** on live fullscreen capture when `match_readiness_enabled` is true.
   - Use a **tiny CNN** on the **masked `bottom_panel`** from `battlefield_model_layout_path` (hand slots, next-card peek, and elixir count digit region zeroed), with weights from `battlefield_model_path` (default `artifacts/battlefield_cnn.pt`). Probability is compared to `battlefield_score_threshold` (see `src/runtime/battlefield_evaluate.py` and `src/perception/battlefield_infer.py`). **Heuristic and blend detectors are removed**; PyTorch is required when the gate is enabled.
   - Emit structured logs: `waiting_for_battlefield` (includes `reason=` for capture/foreground cases), `battlefield_detected`, `battlefield_wait_timeout`, and `battlefield_timeout_continue` when falling back to idle actuation lockout.
   - If the wait exceeds `battlefield_wait_timeout_ms` (`0` disables the deadline), honor `battlefield_timeout_behavior`: **`idle`** keeps the main loop but forces `NO_OP` actuation with `match_readiness_not_ready`; **`exit_nonzero`** terminates the process with **exit code 2**.
   - Optional **`foreground_check_enabled`** on **Windows** compares the foreground window title to `foreground_title_substrings`; other platforms log a one-time skip and do not block on title.
   - If the default weights file is missing, **config load** fails with an error that includes **how to train** the classifier (root `README.md` documents the full flow).
 - Consequences:
-  - Operators must install **`requirements-ml.txt`**, ship a trained `.pt`, and tune `battlefield_score_threshold` using `scripts/eval_battlefield_classifier.py` or live logs.
+  - Operators must install **`requirements-ml.txt`**, ship a trained `.pt`, and tune `battlefield_score_threshold` using `scripts/eval/eval_battlefield_classifier.py` or live logs.
   - Full HD BGRA copies (~8 MB) occur during the wait loop while frames are classified.
 - Alternatives considered:
   - **Heuristic river/turf bands** on the playfield ROI (removed in favor of the CNN for more reliable deck/menu discrimination).

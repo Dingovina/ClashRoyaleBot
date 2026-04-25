@@ -6,10 +6,10 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from src.perception.battlefield_infer import clear_battlefield_runner_cache
-from src.runtime.battlefield_config import BattlefieldModelConfig
-from src.runtime.battlefield_evaluate import evaluate_battlefield
-from src.runtime.viewport import AnchorRect, GameViewport, crop_playfield_bgra
+from src.perception.infer.battlefield_infer import clear_battlefield_runner_cache
+from src.runtime.config.battlefield_config import BattlefieldModelConfig
+from src.runtime.evaluation.battlefield_evaluate import evaluate_battlefield
+from src.runtime.infra.viewport import AnchorRect, GameViewport, crop_playfield_bgra
 
 
 class BattlefieldModelTests(unittest.TestCase):
@@ -31,7 +31,7 @@ class BattlefieldModelTests(unittest.TestCase):
     def test_evaluate_battlefield_model_runs_with_checkpoint(self) -> None:
         import torch
 
-        from src.perception.battlefield_net import BattlefieldScreenNet
+        from src.perception.models.battlefield_net import BattlefieldScreenNet
 
         clear_battlefield_runner_cache()
         net = BattlefieldScreenNet()
@@ -51,7 +51,6 @@ class BattlefieldModelTests(unittest.TestCase):
                 frame_width=w,
                 frame_height=h,
                 pixels_bgra=bytes(buf),
-                viewport=GameViewport(mode="full_frame"),
                 detector=det,
                 logger=logging.getLogger("test"),
             )

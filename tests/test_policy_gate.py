@@ -2,16 +2,17 @@ from __future__ import annotations
 
 import unittest
 
-from src.runtime.policy_gate import PolicyGate
-from src.runtime.runtime_config import RuntimeConfig
-from src.runtime.types import CandidateAction, RuntimeState
-from src.runtime.viewport import GameViewport
-from src.runtime.zones import build_default_zone_map
+from src.runtime.domain.policy_gate import PolicyGate
+from src.runtime.config.runtime_config import RuntimeConfig
+from src.runtime.domain.types import CandidateAction, RuntimeState
+from src.runtime.infra.viewport import GameViewport
+from src.runtime.domain.zones import build_default_zone_map
 
 
 def _config() -> RuntimeConfig:
     anchors = {i: (0.1, 0.1) for i in range(12)}
     return RuntimeConfig(
+        match_id="test-match",
         tick_interval_ms=500,
         action_rate_limit_ms=1000,
         action_confidence_threshold=0.70,
@@ -23,12 +24,9 @@ def _config() -> RuntimeConfig:
         match_end_check_every_n_ticks=2,
         zones=anchors,
         spell_cards={"fireball"},
-        capture_enabled=False,
         capture_debug_save_enabled=False,
         capture_debug_dir=None,
         capture_every_n_ticks=0,
-        actuation_enabled=False,
-        actuation_dry_run=True,
         actuation_select_to_click_delay_ms=0,
         actuation_card_hotkeys=("1", "2", "3", "4"),
         game_viewport=GameViewport(mode="full_frame"),
@@ -40,9 +38,14 @@ def _config() -> RuntimeConfig:
         foreground_title_substrings=("clash royale", "google play games", "google play"),
         battlefield_model_path=None,
         battlefield_model_layout_path="configs/screen_layout_reference.yaml",
-        elixir_model_enabled=False,
         elixir_model_path=None,
         elixir_model_layout_path="configs/screen_layout_reference.yaml",
+        card_model_path=None,
+        card_model_layout_path="configs/screen_layout_reference.yaml",
+        hand_tick_log_enabled=False,
+        hand_tick_log_path="logs/hand_cards_ticks.jsonl",
+        session_id="test-session",
+        card_name_aliases={"knight": "knight", "archers": "archers", "fireball": "fireball", "giant": "giant"},
         card_elixir_costs={"knight": 3.0, "archers": 3.0, "fireball": 4.0, "giant": 5.0},
     )
 

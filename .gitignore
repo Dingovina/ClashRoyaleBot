@@ -10,3 +10,6 @@ data/raw/frame_*.png
 artifacts/*
 !artifacts/.gitkeep
 !artifacts/battlefield_cnn.pt
+
+# Debug log files
+logs/*

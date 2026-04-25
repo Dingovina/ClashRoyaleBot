@@ -1,0 +1,25 @@
+cards:
+  knight:
+    elixir_cost: 3
+    class: unit
+  archers:
+    elixir_cost: 3
+    class: unit
+  minions:
+    elixir_cost: 3
+    class: unit
+  arrows:
+    elixir_cost: 3
+    class: spell
+  fireball:
+    elixir_cost: 4
+    class: spell
+  giant:
+    elixir_cost: 5
+    class: unit
+  mini-p.e.k.k.a:
+    elixir_cost: 4
+    class: unit
+  musketeer:
+    elixir_cost: 4
+    class: unit

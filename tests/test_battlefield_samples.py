@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from src.perception.battlefield_samples import collect_battlefield_labeled_pngs
+from src.perception.datasets.battlefield_samples import collect_battlefield_labeled_pngs
 
 
 class BattlefieldSamplesTests(unittest.TestCase):

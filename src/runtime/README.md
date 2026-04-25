@@ -17,11 +17,12 @@ This package contains real-time match execution code.
 - **No actuation until ready:** while the gate has not passed (or after a timeout with `battlefield_timeout_behavior: idle`), policy decisions are forced to `NO_OP` with reason `match_readiness_not_ready`, so **no card hotkeys and no deploy clicks** are emitted.
 - **Timeouts:** `battlefield_wait_timeout_ms` (use `0` for no wall-clock limit) plus `battlefield_timeout_behavior` `idle` (keep looping with actuation blocked) or `exit_nonzero` (process exits with code **2**).
 - **Foreground (optional, Windows):** `foreground_check_enabled` compares the foreground window title (lowercased) against `foreground_title_substrings` before accepting a frame; non-Windows hosts log `foreground_check_skipped` once and do not enforce the check.
-- **Config validation:** `match_readiness_enabled: true` requires `capture_enabled: true`, an existing weights file, an existing layout YAML, and PyTorch. If the default checkpoint path is missing, the error text includes **how to train** the classifier (see the root `README.md`).
+- **Config validation:** runtime requires existing CNN checkpoints/layout files for battlefield + elixir + cards, plus PyTorch. If a default checkpoint path is missing, the error text includes **how to train** the model (see the root `README.md`).
 
 ## Sprint 1 additions
 
 - Fullscreen capture plumbing with optional debug frame dumps.
+- When debug capture is enabled, PNGs are written under `data/raw/<match_id>/` with `CHECK_...` filenames for manual label verification.
 - Keyboard + mouse actuation layer with safe `dry-run` mode.
 - Configurable delay between card hotkey and placement click (`actuation_select_to_click_delay_ms`).
 - Configurable per-slot hotkeys (`actuation_card_hotkeys`, e.g. `q`/`w`/`e`/`r` to match in-game bindings).
@@ -50,5 +51,5 @@ This package contains real-time match execution code.
 - `keyboard_input.py` sends slot hotkeys (`pynput` first, `pyautogui` fallback).
 - `actuation.py` orchestrates hotkey + placement click (`pyautogui`).
 - `candidate_policy.py` provides scripted candidate actions for reliability tests.
-- `loop.py` optionally waits for match readiness, then runs capture → policy → gate → actuation and logs decisions.
-- `__main__.py` starts runtime via `python -m src.runtime` or `python scripts/run_runtime.py` from the repo (see `scripts/run_runtime.*`).
+- `runtime_service.py` runs runtime lifecycle; `tick_orchestrator.py` executes capture → perception → policy/gate → actuation and logs decisions.
+- `__main__.py` starts runtime via `python -m src.runtime` or `python scripts/runtime/run_runtime.py` from the repo (see `scripts/run_runtime.*`).
