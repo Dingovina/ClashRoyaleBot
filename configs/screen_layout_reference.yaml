@@ -55,3 +55,36 @@ elixir_number:
   top: 1031
   right: 851
   bottom: 1060
+
+# On-screen tower HP text ROIs (inclusive pixel bounds).
+tower_hp_regions:
+  friendly_left_princess:
+    left: 770
+    top: 669
+    right: 835
+    bottom: 690
+  friendly_right_princess:
+    left: 1087
+    top: 669
+    right: 1152
+    bottom: 690
+  friendly_king:
+    left: 930
+    top: 817
+    right: 1003
+    bottom: 839
+  enemy_left_princess:
+    left: 770
+    top: 142
+    right: 835
+    bottom: 163
+  enemy_right_princess:
+    left: 1087
+    top: 142
+    right: 1152
+    bottom: 163
+  enemy_king:
+    left: 930
+    top: 16
+    right: 1003
+    bottom: 38
