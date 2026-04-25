@@ -17,6 +17,7 @@ from src.runtime.domain.zones import build_default_zone_map
 def _config() -> RuntimeConfig:
     anchors = {i: (0.1, 0.1) for i in range(12)}
     return RuntimeConfig(
+        match_id="test-match",
         tick_interval_ms=1,
         action_rate_limit_ms=1000,
         action_confidence_threshold=0.7,
@@ -64,6 +65,14 @@ class _FakeCapture:
             source="disabled",
             pixels_bgra=None,
         )
+
+    def update_capture_context(
+        self,
+        *,
+        elixir_value: float | None,
+        hand_cards: list[str] | tuple[str, ...] | None,
+    ) -> None:
+        _ = (elixir_value, hand_cards)
 
 
 @dataclass

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Evaluate a trained battlefield CNN on labeled PNGs (same ROI as training).
+Evaluate a trained battlefield CNN on labeled cropped PNGs.
 
 Labels: ``good/*.png`` → battlefield, ``bad/*.png`` → not (under ``--data-dir``).
 
@@ -8,7 +8,7 @@ Requires: ``pip install -r requirements-ml.txt``
 
 Example (from repository root, one line):
 
-  python scripts/eval/eval_battlefield_classifier.py --checkpoint artifacts/battlefield_cnn.pt --data-dir data/processed/battlefield_test --layout-yaml configs/screen_layout_reference.yaml --threshold 0.5
+  python scripts/eval/eval_battlefield_classifier.py --checkpoint artifacts/battlefield_cnn.pt --data-dir data/processed/train/battlefield_test --threshold 0.5
 """
 from __future__ import annotations
 
@@ -24,9 +24,7 @@ import torch
 from PIL import Image
 
 from src.perception.models.battlefield_net import BattlefieldScreenNet
-from src.perception.roi.battlefield_roi import pil_rgb_masked_bottom_panel
 from src.perception.datasets.battlefield_samples import collect_battlefield_labeled_pngs
-from src.perception.roi.screen_layout import load_screen_layout_reference
 
 
 def _collect_samples(data_dir: Path) -> list[tuple[Path, int]]:
@@ -36,11 +34,10 @@ def _collect_samples(data_dir: Path) -> list[tuple[Path, int]]:
         raise SystemExit(str(exc)) from exc
 
 
-def _load_tensor(path: Path, layout, size: int) -> torch.Tensor:
+def _load_tensor(path: Path, size: int) -> torch.Tensor:
     im = Image.open(path)
-    crop = pil_rgb_masked_bottom_panel(im, layout)
-    crop = crop.resize((size, size), Image.BICUBIC)
-    t = torch.frombuffer(bytearray(crop.tobytes()), dtype=torch.uint8).reshape(size, size, 3)
+    im = im.convert("RGB").resize((size, size), Image.BICUBIC)
+    t = torch.frombuffer(bytearray(im.tobytes()), dtype=torch.uint8).reshape(size, size, 3)
     return (t.float() / 255.0).permute(2, 0, 1)
 
 
@@ -54,12 +51,7 @@ def _torch_load(path: Path) -> dict:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Score labeled PNGs with the battlefield CNN")
     parser.add_argument("--checkpoint", type=Path, required=True)
-    parser.add_argument("--data-dir", type=Path, default=Path("data/processed/battlefield_test"))
-    parser.add_argument(
-        "--layout-yaml",
-        type=Path,
-        default=Path("configs/screen_layout_reference.yaml"),
-    )
+    parser.add_argument("--data-dir", type=Path, default=Path("data/processed/train/battlefield_test"))
     parser.add_argument(
         "--threshold",
         type=float,
@@ -76,7 +68,6 @@ def main() -> None:
         raise SystemExit(f"Invalid checkpoint (expected state_dict): {args.checkpoint}")
 
     input_size = int(ckpt.get("input_size", 128))
-    layout = load_screen_layout_reference(args.layout_yaml)
     samples = _collect_samples(args.data_dir)
     if not samples:
         raise SystemExit(f"No labeled PNGs under {args.data_dir}/good and {args.data_dir}/bad")
@@ -91,7 +82,7 @@ def main() -> None:
 
     with torch.inference_mode():
         for path, y_true in samples:
-            x = _load_tensor(path, layout, input_size).unsqueeze(0).to(device)
+            x = _load_tensor(path, input_size).unsqueeze(0).to(device)
             prob = float(torch.sigmoid(net(x)).squeeze().cpu())
             y_pred = 1 if prob >= args.threshold else 0
             ok = y_pred == y_true

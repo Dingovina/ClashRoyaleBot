@@ -22,6 +22,7 @@ This package contains real-time match execution code.
 ## Sprint 1 additions
 
 - Fullscreen capture plumbing with optional debug frame dumps.
+- When debug capture is enabled, PNGs are written under `data/raw/<match_id>/` with `CHECK_...` filenames for manual label verification.
 - Keyboard + mouse actuation layer with safe `dry-run` mode.
 - Configurable delay between card hotkey and placement click (`actuation_select_to_click_delay_ms`).
 - Configurable per-slot hotkeys (`actuation_card_hotkeys`, e.g. `q`/`w`/`e`/`r` to match in-game bindings).

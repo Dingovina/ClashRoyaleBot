@@ -1,18 +1,15 @@
 #!/usr/bin/env python3
 """
-Train the tiny battlefield screen classifier on labeled PNGs.
+Train the tiny battlefield screen classifier on cropped battlefield ROI PNGs.
 
 Expects ``--data-dir/good/*.png`` (in-match, label 1) and ``--data-dir/bad/*.png`` (not in-match, label 0).
-
-The CNN sees only the ``bottom_panel`` region from ``--layout-yaml``, with hand slots,
-next-card peek, and elixir count digit pixels zeroed (same preprocessing as runtime inference).
 
 Requires: ``pip install -r requirements-ml.txt``
 
 Example (run from the repository root so ``src`` resolves). In **PowerShell** use a single line: the
 caret (^) is **not** a line-continuation character (unlike cmd.exe), so it is passed to Python and breaks argparse.
 
-  python scripts/train/train_battlefield_classifier.py --data-dir data/processed/battlefield_test --layout-yaml configs/screen_layout_reference.yaml --out artifacts/battlefield_cnn.pt
+  python scripts/train/train_battlefield_classifier.py --data-dir data/processed/train/battlefield_test --out artifacts/battlefield_cnn.pt
 """
 from __future__ import annotations
 
@@ -31,9 +28,7 @@ import torch.nn as nn
 from PIL import Image
 
 from src.perception.models.battlefield_net import BattlefieldScreenNet
-from src.perception.roi.battlefield_roi import pil_rgb_masked_bottom_panel
 from src.perception.datasets.battlefield_samples import collect_battlefield_labeled_pngs
-from src.perception.roi.screen_layout import load_screen_layout_reference
 from src.ml.manifest import write_artifact_manifest
 
 
@@ -74,23 +69,16 @@ def _stratified_split(
     return train, val
 
 
-def _load_tensor(path: Path, layout, size: int) -> torch.Tensor:
+def _load_tensor(path: Path, size: int) -> torch.Tensor:
     im = Image.open(path)
-    crop = pil_rgb_masked_bottom_panel(im, layout)
-    crop = crop.resize((size, size), Image.BICUBIC)
-    t = torch.frombuffer(bytearray(crop.tobytes()), dtype=torch.uint8).reshape(size, size, 3)
+    im = im.convert("RGB").resize((size, size), Image.BICUBIC)
+    t = torch.frombuffer(bytearray(im.tobytes()), dtype=torch.uint8).reshape(size, size, 3)
     return (t.float() / 255.0).permute(2, 0, 1)
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data-dir", type=Path, default=Path("data/processed/battlefield_test"))
-    parser.add_argument(
-        "--layout-yaml",
-        type=Path,
-        default=Path("configs/screen_layout_reference.yaml"),
-        help="Screen layout with bottom_panel and HUD rects to mask",
-    )
+    parser.add_argument("--data-dir", type=Path, default=Path("data/processed/train/battlefield_test"))
     parser.add_argument("--out", type=Path, default=Path("artifacts/battlefield_cnn.pt"))
     parser.add_argument("--input-size", type=int, default=128)
     parser.add_argument("--epochs", type=int, default=120)
@@ -105,7 +93,6 @@ def main() -> None:
     torch.manual_seed(args.seed)
     random.seed(args.seed)
 
-    layout = load_screen_layout_reference(args.layout_yaml)
     samples = _collect_samples(args.data_dir)
     train_items, val_items = _stratified_split(samples, val_fraction=args.val_fraction, seed=args.seed)
 
@@ -115,7 +102,7 @@ def main() -> None:
     loss_fn = nn.BCEWithLogitsLoss()
 
     def batch_tensors(items: list[tuple[Path, int]]) -> tuple[torch.Tensor, torch.Tensor]:
-        xs = [_load_tensor(p, layout, args.input_size) for p, _ in items]
+        xs = [_load_tensor(p, args.input_size) for p, _ in items]
         ys = torch.tensor([y for _, y in items], dtype=torch.float32, device=device)
         return torch.stack(xs, dim=0), ys
 
@@ -165,7 +152,6 @@ def main() -> None:
                 "dataset_id": args.dataset_id,
                 "train_samples": len(train_items),
                 "val_samples": len(val_items),
-                "layout_yaml": str(args.layout_yaml),
                 "roi": "masked_bottom_panel",
             },
         },

@@ -45,6 +45,10 @@ class TickOrchestrator:
         )
 
         perception = self.perception_service.infer(frame)
+        self.capture.update_capture_context(
+            elixir_value=perception.elixir if perception.elixir_status == "ok" else None,
+            hand_cards=list(perception.hand_cards) if perception.hand_status == "ok" else None,
+        )
         elixir_estimate = perception.elixir if perception.elixir_status == "ok" else min(10.0, tick_id * 0.5)
 
         state = RuntimeState(

@@ -12,6 +12,7 @@ from src.runtime.domain.zones import build_default_zone_map
 def _config() -> RuntimeConfig:
     anchors = {i: (0.1, 0.1) for i in range(12)}
     return RuntimeConfig(
+        match_id="test-match",
         tick_interval_ms=500,
         action_rate_limit_ms=1000,
         action_confidence_threshold=0.70,

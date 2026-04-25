@@ -38,7 +38,7 @@ def _load_tensor(path: Path, size: int, *, grayscale_input: bool) -> torch.Tenso
 def main() -> None:
     parser = argparse.ArgumentParser(description="Evaluate card classifier")
     parser.add_argument("--checkpoint", type=Path, required=True)
-    parser.add_argument("--data-dir", type=Path, default=Path("data/processed/cards"))
+    parser.add_argument("--data-dir", type=Path, default=Path("data/processed/train/cards_train"))
     parser.add_argument(
         "--rgb-input",
         action="store_true",

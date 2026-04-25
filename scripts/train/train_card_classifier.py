@@ -164,7 +164,7 @@ def _to_tensor(
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Train hand-card classifier from cropped slot PNGs")
-    parser.add_argument("--data-dir", type=Path, default=Path("data/processed/cards"))
+    parser.add_argument("--data-dir", type=Path, default=Path("data/processed/train/cards_train"))
     parser.add_argument("--out", type=Path, default=Path("artifacts/card_cnn.pt"))
     parser.add_argument("--input-size", type=int, default=96)
     parser.add_argument("--epochs", type=int, default=220)

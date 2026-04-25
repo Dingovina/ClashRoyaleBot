@@ -1,4 +1,6 @@
 runtime:
+  # Match identifier used for ML raw-frame collection under data/raw/<match_id>/.
+  match_id: local-match
   # --- Policy thresholds ---
   tick_interval_ms: 1000
   action_rate_limit_ms: 1000

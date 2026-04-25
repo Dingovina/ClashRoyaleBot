@@ -1,16 +1,14 @@
 #!/usr/bin/env python3
 """
-Train a tiny CNN that predicts current elixir value (0..10) from the elixir-number ROI.
+Train a tiny CNN that predicts current elixir value (0..10) from cropped elixir-number ROI PNGs.
 
 Expects PNG files named ``<elixir>_<index>.png`` under ``--data-dir``.
 Example: ``7_2.png`` means label 7.
 
-The model sees only ``elixir_number`` from ``--layout-yaml``.
-
 Requires: ``pip install -r requirements-ml.txt``
 
 Example (run from repository root, one line):
-  python scripts/train/train_elixir_classifier.py --data-dir data/processed/elixir_test --layout-yaml configs/screen_layout_reference.yaml --out artifacts/elixir_cnn.pt
+  python scripts/train/train_elixir_classifier.py --data-dir data/processed/train/elixir_test --out artifacts/elixir_cnn.pt
 """
 from __future__ import annotations
 
@@ -29,9 +27,7 @@ import torch.nn as nn
 from PIL import Image
 
 from src.perception.models.elixir_net import ElixirDigitNet
-from src.perception.roi.elixir_roi import pil_rgb_elixir_number
 from src.perception.datasets.elixir_samples import collect_elixir_labeled_pngs
-from src.perception.roi.screen_layout import load_screen_layout_reference
 from src.ml.manifest import write_artifact_manifest
 
 
@@ -70,23 +66,16 @@ def _stratified_split(
     return train, val
 
 
-def _load_tensor(path: Path, layout, size: int) -> torch.Tensor:
+def _load_tensor(path: Path, size: int) -> torch.Tensor:
     im = Image.open(path)
-    crop = pil_rgb_elixir_number(im, layout)
-    crop = crop.resize((size, size), Image.BICUBIC)
-    t = torch.frombuffer(bytearray(crop.tobytes()), dtype=torch.uint8).reshape(size, size, 3)
+    im = im.convert("RGB").resize((size, size), Image.BICUBIC)
+    t = torch.frombuffer(bytearray(im.tobytes()), dtype=torch.uint8).reshape(size, size, 3)
     return (t.float() / 255.0).permute(2, 0, 1)
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Train elixir digit CNN (0..10)")
-    parser.add_argument("--data-dir", type=Path, default=Path("data/processed/elixir_test"))
-    parser.add_argument(
-        "--layout-yaml",
-        type=Path,
-        default=Path("configs/screen_layout_reference.yaml"),
-        help="Screen layout with elixir_number rect",
-    )
+    parser.add_argument("--data-dir", type=Path, default=Path("data/processed/train/elixir_test"))
     parser.add_argument("--out", type=Path, default=Path("artifacts/elixir_cnn.pt"))
     parser.add_argument("--input-size", type=int, default=64)
     parser.add_argument("--epochs", type=int, default=200)
@@ -102,7 +91,6 @@ def main() -> None:
     torch.manual_seed(args.seed)
     random.seed(args.seed)
 
-    layout = load_screen_layout_reference(args.layout_yaml)
     samples = _collect_samples(args.data_dir)
     train_items, val_items = _stratified_split(samples, val_fraction=args.val_fraction, seed=args.seed)
 
@@ -112,7 +100,7 @@ def main() -> None:
     loss_fn = nn.CrossEntropyLoss()
 
     def batch_tensors(items: list[tuple[Path, int]]) -> tuple[torch.Tensor, torch.Tensor]:
-        xs = [_load_tensor(p, layout, args.input_size) for p, _ in items]
+        xs = [_load_tensor(p, args.input_size) for p, _ in items]
         ys = torch.tensor([y for _, y in items], dtype=torch.long, device=device)
         return torch.stack(xs, dim=0), ys
 
@@ -198,7 +186,6 @@ def main() -> None:
                 "dataset_id": args.dataset_id,
                 "train_samples": len(train_items),
                 "val_samples": len(val_items),
-                "layout_yaml": str(args.layout_yaml),
                 "roi": "elixir_number",
                 "labels": "filename_prefix_0_to_10",
             },

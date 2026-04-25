@@ -33,12 +33,14 @@ from scripts.data.crop_result import CropResult
 
 def _parse_hand_labels(stem: str) -> tuple[str, str, str, str]:
     parts = [part.strip().lower() for part in stem.split("_")]
-    if len(parts) < 4:
+    if len(parts) >= 6 and parts[0].isdigit():
+        labels = tuple(parts[1:5])
+    elif len(parts) >= 4:
+        labels = tuple(parts[:4])
+    else:
         raise ValueError(
             f"Expected at least 4 labels in filename stem, got {len(parts)} in '{stem}'"
         )
-    # Allow optional trailing suffix like "_<random_id>" and ignore it.
-    labels = tuple(parts[:4])
     if any(not label for label in labels):
         raise ValueError(f"Filename stem contains empty card label: '{stem}'")
     return labels  # type: ignore[return-value]
@@ -53,20 +55,31 @@ def _sanitized_card_name(card_name: str) -> str:
 
 def crop_card_images(
     *,
-    raw_root: Path,
-    processed_root: Path,
+    raw_root: Path | None,
+    processed_root: Path | None,
     layout_yaml: Path,
     id_bytes: int,
     delete_source: bool,
     dataset_id: str,
+    source_paths: list[Path] | None = None,
+    output_dir: Path | None = None,
     write_manifest: bool = True,
 ) -> CropResult:
-    raw_dir = raw_root / "cards"
-    out_dir = processed_root / "cards"
+    if source_paths is None:
+        if raw_root is None:
+            raise ValueError("raw_root is required when source_paths is not provided")
+        raw_dir = raw_root / "cards"
+        source_paths = sorted(p for p in raw_dir.glob("*.png") if p.is_file())
+    if output_dir is None:
+        if processed_root is None:
+            raise ValueError("processed_root is required when output_dir is not provided")
+        out_dir = processed_root / "cards"
+    else:
+        out_dir = output_dir
     if id_bytes < 2:
         raise ValueError("--id-bytes must be >= 2")
-    if not raw_dir.is_dir():
-        raise ValueError(f"Raw cards directory does not exist: {raw_dir}")
+    if not source_paths:
+        return CropResult(processed=0, skipped=0, written_paths=[], processed_sources=[])
 
     layout = load_screen_layout_reference(layout_yaml)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -74,8 +87,9 @@ def crop_card_images(
     processed_files = 0
     skipped_bad_names = 0
     written_paths: list[Path] = []
+    processed_sources: list[Path] = []
 
-    for src_path in sorted(raw_dir.glob("*.png")):
+    for src_path in sorted(source_paths):
         try:
             labels = _parse_hand_labels(src_path.stem)
         except ValueError as exc:
@@ -94,19 +108,27 @@ def crop_card_images(
         if delete_source:
             src_path.unlink()
         processed_files += 1
+        processed_sources.append(src_path)
 
     if write_manifest:
+        source_root = raw_root if raw_root is not None else Path(".")
+        processed_base = processed_root if processed_root is not None else out_dir.parent
         write_dataset_manifest(
             manifest_path=out_dir / "dataset_manifest.json",
             dataset_id=dataset_id,
             schema_version=1,
-            source_root=raw_root,
-            processed_root=processed_root,
+            source_root=source_root,
+            processed_root=processed_base,
             files=written_paths,
             extra={"script": "crop_card_images.py"},
         )
 
-    return CropResult(processed=processed_files, skipped=skipped_bad_names, written_paths=written_paths)
+    return CropResult(
+        processed=processed_files,
+        skipped=skipped_bad_names,
+        written_paths=written_paths,
+        processed_sources=processed_sources,
+    )
 
 
 def main() -> None:
@@ -146,6 +168,8 @@ def main() -> None:
             id_bytes=args.id_bytes,
             delete_source=args.delete_source,
             dataset_id=args.dataset_id,
+            source_paths=None,
+            output_dir=None,
             write_manifest=True,
         )
     except ValueError as exc:

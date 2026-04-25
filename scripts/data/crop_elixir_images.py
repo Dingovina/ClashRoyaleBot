@@ -25,18 +25,30 @@ def _collect_pngs(directory: Path) -> list[Path]:
 
 def crop_elixir_images(
     *,
-    raw_root: Path,
-    processed_root: Path,
+    raw_root: Path | None,
+    processed_root: Path | None,
     layout_yaml: Path,
     delete_source: bool,
+    source_paths: list[Path] | None = None,
+    output_dir: Path | None = None,
 ) -> CropResult:
     layout = load_screen_layout_reference(layout_yaml)
     processed = 0
     skipped = 0
     written_paths: list[Path] = []
-    src_dir = raw_root / "elixir_test"
-    dst_dir = processed_root / "elixir_test"
-    for src_path in _collect_pngs(src_dir):
+    processed_sources: list[Path] = []
+    if source_paths is None:
+        if raw_root is None:
+            raise ValueError("raw_root is required when source_paths is not provided")
+        src_dir = raw_root / "elixir_test"
+        source_paths = _collect_pngs(src_dir)
+    if output_dir is None:
+        if processed_root is None:
+            raise ValueError("processed_root is required when output_dir is not provided")
+        dst_dir = processed_root / "elixir_test"
+    else:
+        dst_dir = output_dir
+    for src_path in sorted(source_paths):
         dst_path = dst_dir / src_path.name
         try:
             with Image.open(src_path) as image:
@@ -47,9 +59,15 @@ def crop_elixir_images(
                 src_path.unlink()
             processed += 1
             written_paths.append(dst_path)
+            processed_sources.append(src_path)
         except ValueError:
             skipped += 1
-    return CropResult(processed=processed, skipped=skipped, written_paths=written_paths)
+    return CropResult(
+        processed=processed,
+        skipped=skipped,
+        written_paths=written_paths,
+        processed_sources=processed_sources,
+    )
 
 
 def main() -> None:

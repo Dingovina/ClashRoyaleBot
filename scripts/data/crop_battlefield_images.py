@@ -25,32 +25,71 @@ def _collect_pngs(directory: Path) -> list[Path]:
 
 def crop_battlefield_images(
     *,
-    raw_root: Path,
-    processed_root: Path,
+    raw_root: Path | None,
+    processed_root: Path | None,
     layout_yaml: Path,
     delete_source: bool,
+    source_paths: list[Path] | None = None,
+    output_good_dir: Path | None = None,
+    include_bad_subset: bool = True,
 ) -> CropResult:
     layout = load_screen_layout_reference(layout_yaml)
     processed = 0
     skipped = 0
     written_paths: list[Path] = []
-    for subset in ("good", "bad"):
-        src_dir = raw_root / "battlefield_test" / subset
-        dst_dir = processed_root / "battlefield_test" / subset
-        for src_path in _collect_pngs(src_dir):
-            dst_path = dst_dir / src_path.name
-            try:
-                with Image.open(src_path) as image:
-                    cropped = pil_rgb_masked_bottom_panel(image, layout)
-                    dst_path.parent.mkdir(parents=True, exist_ok=True)
-                    cropped.save(dst_path, format="PNG")
-                if delete_source:
-                    src_path.unlink()
-                processed += 1
-                written_paths.append(dst_path)
-            except ValueError:
-                skipped += 1
-    return CropResult(processed=processed, skipped=skipped, written_paths=written_paths)
+    processed_sources: list[Path] = []
+    if source_paths is None:
+        if raw_root is None or processed_root is None:
+            raise ValueError("raw_root and processed_root are required when source_paths is not provided")
+        subsets = ("good", "bad") if include_bad_subset else ("good",)
+        for subset in subsets:
+            src_dir = raw_root / "battlefield_test" / subset
+            dst_dir = processed_root / "battlefield_test" / subset
+            for src_path in _collect_pngs(src_dir):
+                dst_path = dst_dir / src_path.name
+                try:
+                    with Image.open(src_path) as image:
+                        cropped = pil_rgb_masked_bottom_panel(image, layout)
+                        dst_path.parent.mkdir(parents=True, exist_ok=True)
+                        cropped.save(dst_path, format="PNG")
+                    if delete_source:
+                        src_path.unlink()
+                    processed += 1
+                    written_paths.append(dst_path)
+                    processed_sources.append(src_path)
+                except ValueError:
+                    skipped += 1
+        return CropResult(
+            processed=processed,
+            skipped=skipped,
+            written_paths=written_paths,
+            processed_sources=processed_sources,
+        )
+
+    if output_good_dir is None:
+        if processed_root is None:
+            raise ValueError("processed_root is required when output_good_dir is not provided")
+        output_good_dir = processed_root / "battlefield_test" / "good"
+    for src_path in sorted(source_paths):
+        dst_path = output_good_dir / src_path.name
+        try:
+            with Image.open(src_path) as image:
+                cropped = pil_rgb_masked_bottom_panel(image, layout)
+                dst_path.parent.mkdir(parents=True, exist_ok=True)
+                cropped.save(dst_path, format="PNG")
+            if delete_source:
+                src_path.unlink()
+            processed += 1
+            written_paths.append(dst_path)
+            processed_sources.append(src_path)
+        except ValueError:
+            skipped += 1
+    return CropResult(
+        processed=processed,
+        skipped=skipped,
+        written_paths=written_paths,
+        processed_sources=processed_sources,
+    )
 
 
 def main() -> None:

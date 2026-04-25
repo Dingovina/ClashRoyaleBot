@@ -10,6 +10,7 @@ BattlefieldTimeoutBehavior = Literal["idle", "exit_nonzero"]
 
 @dataclass(frozen=True)
 class RuntimeConfig:
+    match_id: str
     tick_interval_ms: int
     action_rate_limit_ms: int
     action_confidence_threshold: float

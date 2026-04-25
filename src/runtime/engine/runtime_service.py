@@ -29,6 +29,7 @@ class RuntimeService:
             logger=self.logger,
             debug_dir=debug_dir,
             capture_every_n_ticks=self.config.capture_every_n_ticks,
+            match_id=self.config.match_id,
         )
         actuator = InputActuator(
             enabled=True,

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+import re
 from typing import Any
 
 import yaml
@@ -21,24 +22,24 @@ TRAIN_BATTLEFIELD_CLASSIFIER_HELP = (
     "Install ML dependencies: pip install -r requirements-ml.txt\n"
     "Train from labeled PNGs under good/ (in-match) and bad/ (not), run from repo root (one line; "
     "do not use cmd's ^ in PowerShell—it is passed to Python as an argument):\n"
-    "  python scripts/train/train_battlefield_classifier.py --data-dir data/processed/battlefield_test "
-    "--layout-yaml configs/screen_layout_reference.yaml --out artifacts/battlefield_cnn.pt\n"
+    "  python scripts/train/train_battlefield_classifier.py --data-dir data/processed/train/battlefield_test "
+    "--out artifacts/battlefield_cnn.pt\n"
     "Optionally set --input-size to match your checkpoint (default 128). "
     "Then set runtime.battlefield_model_path in configs/runtime.yaml if the file is not at the default path."
 )
 
 TRAIN_ELIXIR_CLASSIFIER_HELP = (
     "Install ML dependencies: pip install -r requirements-ml.txt\n"
-    "Train from labeled PNGs named <elixir>_<index>.png under data/processed/elixir_test, run from repo root:\n"
-    "  python scripts/train/train_elixir_classifier.py --data-dir data/processed/elixir_test "
-    "--layout-yaml configs/screen_layout_reference.yaml --out artifacts/elixir_cnn.pt\n"
+    "Train from labeled PNGs named <elixir>_<index>.png under data/processed/train/elixir_test, run from repo root:\n"
+    "  python scripts/train/train_elixir_classifier.py --data-dir data/processed/train/elixir_test "
+    "--out artifacts/elixir_cnn.pt\n"
     "Then set runtime.elixir_model_path in configs/runtime.yaml if the file is not at the default path."
 )
 
 TRAIN_CARD_CLASSIFIER_HELP = (
     "Install ML dependencies: pip install -r requirements-ml.txt\n"
-    "Train from hand-slot crops named <card-name>_<random-id>.png under data/processed/cards:\n"
-    "  python scripts/train/train_card_classifier.py --data-dir data/processed/cards --out artifacts/card_cnn.pt\n"
+    "Train from hand-slot crops named <card-name>_<random-id>.png under data/processed/train/cards_train:\n"
+    "  python scripts/train/train_card_classifier.py --data-dir data/processed/train/cards_train --out artifacts/card_cnn.pt\n"
     "Then set runtime.card_model_path in configs/runtime.yaml if the file is not at the default path."
 )
 
@@ -73,6 +74,7 @@ def load_runtime_config(path: Path) -> RuntimeConfig:
     card_model_path = _parse_optional_path(runtime.get("card_model_path")) or DEFAULT_CARD_CHECKPOINT
 
     cfg = RuntimeConfig(
+        match_id=_parse_match_id(runtime),
         tick_interval_ms=int(runtime["tick_interval_ms"]),
         action_rate_limit_ms=int(runtime["action_rate_limit_ms"]),
         action_confidence_threshold=float(runtime["action_confidence_threshold"]),
@@ -197,6 +199,17 @@ def _parse_session_id(runtime: dict[str, Any]) -> str:
     if raw:
         return raw
     return "local-runtime"
+
+
+def _parse_match_id(runtime: dict[str, Any]) -> str:
+    raw = _parse_optional_path(runtime.get("match_id"))
+    value = raw or "local-match"
+    if not re.fullmatch(r"[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}", value):
+        raise ValueError(
+            "runtime.match_id must match ^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$ "
+            "(letters, numbers, '_' and '-', max 64 chars)"
+        )
+    return value
 
 
 def _is_default_battlefield_checkpoint(path: Path) -> bool:
@@ -392,6 +405,7 @@ def _validate_runtime_keys(path: Path, runtime: dict[str, Any]) -> None:
         "hand_tick_log_enabled",
         "hand_tick_log_path",
         "session_id",
+        "match_id",
         "card_registry_path",
     }
     unknown = sorted(k for k in runtime.keys() if k not in allowed)
