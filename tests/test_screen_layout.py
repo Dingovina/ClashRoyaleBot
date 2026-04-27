@@ -20,6 +20,10 @@ class ScreenLayoutTests(unittest.TestCase):
         self.assertEqual(layout.elixir_number.bottom, 1060)
         self.assertEqual(layout.elixir_number.width, 851 - 823 + 1)
         self.assertEqual(layout.elixir_number.height, 1060 - 1031 + 1)
+        self.assertEqual(layout.tower_hp_regions["friendly_left_princess"].left, 770)
+        self.assertEqual(layout.tower_hp_regions["friendly_left_princess"].top, 669)
+        self.assertEqual(layout.tower_hp_regions["enemy_king"].left, 930)
+        self.assertEqual(layout.tower_hp_regions["enemy_king"].bottom, 38)
 
     def test_intersect_pixel_rects(self) -> None:
         a = PixelRect(0, 0, 10, 10)

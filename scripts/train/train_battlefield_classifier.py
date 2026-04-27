@@ -29,7 +29,6 @@ from PIL import Image
 
 from src.perception.models.battlefield_net import BattlefieldScreenNet
 from src.perception.datasets.battlefield_samples import collect_battlefield_labeled_pngs
-from src.ml.manifest import write_artifact_manifest
 
 
 def _collect_samples(data_dir: Path, *, min_count: int) -> list[tuple[Path, int]]:
@@ -62,7 +61,6 @@ def main() -> None:
     parser.add_argument("--weight-decay", type=float, default=1e-2)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--dataset-id", type=str, default="battlefield-default")
-    parser.add_argument("--artifact-manifest", type=Path, default=None)
     args = parser.parse_args()
 
     torch.manual_seed(args.seed)
@@ -133,21 +131,6 @@ def main() -> None:
             },
         },
         args.out,
-    )
-    manifest_path = args.artifact_manifest if args.artifact_manifest else args.out.with_suffix(".manifest.json")
-    write_artifact_manifest(
-        manifest_path=manifest_path,
-        model_id="battlefield-screen-net",
-        task="battlefield_binary_classification",
-        dataset_id=args.dataset_id,
-        checkpoint_path=args.out,
-        metrics={"best_val_loss": best_val},
-        train_args={
-            "epochs": args.epochs,
-            "lr": args.lr,
-            "weight_decay": args.weight_decay,
-            "seed": args.seed,
-        },
     )
     print(f"Wrote {args.out.resolve()} (best val loss {best_val:.4f}, meta={json.dumps({'dataset_id': args.dataset_id})})")
 

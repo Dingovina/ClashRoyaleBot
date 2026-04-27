@@ -47,6 +47,7 @@ class ScreenLayoutReference:
     hand_cards: tuple[PixelRect, PixelRect, PixelRect, PixelRect]
     next_card: PixelRect
     elixir_number: PixelRect
+    tower_hp_regions: dict[str, PixelRect]
 
     def hud_subtract_rects(self) -> tuple[PixelRect, ...]:
         """Regions to zero out inside ``bottom_panel`` when training/inferring the battlefield CNN."""
@@ -85,6 +86,26 @@ def load_screen_layout_reference(path: Path) -> ScreenLayoutReference:
     elixir_raw = data.get("elixir_number")
     if not isinstance(elixir_raw, dict):
         raise ValueError("elixir_number must be a mapping with left, top, right, bottom")
+    tower_hp_raw = data.get("tower_hp_regions")
+    if not isinstance(tower_hp_raw, dict):
+        raise ValueError("tower_hp_regions must be a mapping with named tower rectangles")
+    required_tower_keys = (
+        "friendly_left_princess",
+        "friendly_right_princess",
+        "friendly_king",
+        "enemy_left_princess",
+        "enemy_right_princess",
+        "enemy_king",
+    )
+    missing_tower_keys = [key for key in required_tower_keys if key not in tower_hp_raw]
+    if missing_tower_keys:
+        raise ValueError(f"tower_hp_regions missing required keys: {missing_tower_keys}")
+    tower_hp_regions: dict[str, PixelRect] = {}
+    for key in required_tower_keys:
+        raw = tower_hp_raw.get(key)
+        if not isinstance(raw, dict):
+            raise ValueError(f"tower_hp_regions.{key} must be a mapping")
+        tower_hp_regions[key] = _rect(raw)
 
     return ScreenLayoutReference(
         schema_version=int(data.get("schema_version", 1)),
@@ -96,4 +117,5 @@ def load_screen_layout_reference(path: Path) -> ScreenLayoutReference:
         hand_cards=(hand[0], hand[1], hand[2], hand[3]),
         next_card=_rect(data["next_card"]),
         elixir_number=_rect(elixir_raw),
+        tower_hp_regions=tower_hp_regions,
     )

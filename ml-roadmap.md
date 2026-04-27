@@ -55,13 +55,13 @@ Checkpoint metadata indicates very small datasets:
 1. Add learning-rate scheduling and early stopping on validation metric.
 2. Add label smoothing for multi-class tasks (cards/elixir).
 3. Improve augmentations for realism (JPEG artifacts, gamma shifts, mild blur/noise).
-4. Track repeated experiments with manifest snapshots for reproducibility.
+4. Track repeated experiments with structured run logs for reproducibility.
 
 ## Execution Plan (1-2 Days)
 
 1. Implement unified eval scripts: `eval_card`, `eval_elixir`, `eval_battlefield`.
 2. Introduce fixed split definition (`data/splits.yaml`) by match/session ids.
-3. Generate standardized JSON reports and artifact manifests for every run.
+3. Generate standardized JSON reports for every run.
 4. Recompute baseline metrics on true holdout.
 5. Retune runtime thresholds (`battlefield_score_threshold`, `battlefield_end_score_threshold`, action confidence thresholds) using holdout evidence.
 

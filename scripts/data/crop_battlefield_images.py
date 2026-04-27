@@ -13,7 +13,6 @@ if str(_REPO_ROOT) not in sys.path:
 
 from src.perception.roi.battlefield_roi import pil_rgb_masked_bottom_panel
 from src.perception.roi.screen_layout import load_screen_layout_reference
-from src.ml.manifest import write_dataset_manifest
 from scripts.data.crop_result import CropResult
 
 
@@ -98,7 +97,6 @@ def main() -> None:
     parser.add_argument("--processed-root", type=Path, default=Path("data/processed"))
     parser.add_argument("--layout-yaml", type=Path, default=Path("configs/screen_layout_reference.yaml"))
     parser.add_argument("--delete-source", action="store_true")
-    parser.add_argument("--dataset-id", type=str, default="battlefield-default")
     args = parser.parse_args()
 
     result = crop_battlefield_images(
@@ -106,15 +104,6 @@ def main() -> None:
         processed_root=args.processed_root,
         layout_yaml=args.layout_yaml,
         delete_source=args.delete_source,
-    )
-    write_dataset_manifest(
-        manifest_path=args.processed_root / "battlefield_test" / "dataset_manifest.json",
-        dataset_id=args.dataset_id,
-        schema_version=1,
-        source_root=args.raw_root,
-        processed_root=args.processed_root,
-        files=result.written_paths,
-        extra={"script": "crop_battlefield_images.py"},
     )
     print(f"battlefield: processed={result.processed} skipped={result.skipped}")
 
