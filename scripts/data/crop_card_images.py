@@ -27,7 +27,6 @@ if str(_REPO_ROOT) not in sys.path:
 
 from src.perception.roi.card_roi import pil_rgb_hand_card
 from src.perception.roi.screen_layout import load_screen_layout_reference
-from src.ml.manifest import write_dataset_manifest
 from scripts.data.crop_result import CropResult
 
 
@@ -60,10 +59,8 @@ def crop_card_images(
     layout_yaml: Path,
     id_bytes: int,
     delete_source: bool,
-    dataset_id: str,
     source_paths: list[Path] | None = None,
     output_dir: Path | None = None,
-    write_manifest: bool = True,
 ) -> CropResult:
     if source_paths is None:
         if raw_root is None:
@@ -110,19 +107,6 @@ def crop_card_images(
         processed_files += 1
         processed_sources.append(src_path)
 
-    if write_manifest:
-        source_root = raw_root if raw_root is not None else Path(".")
-        processed_base = processed_root if processed_root is not None else out_dir.parent
-        write_dataset_manifest(
-            manifest_path=out_dir / "dataset_manifest.json",
-            dataset_id=dataset_id,
-            schema_version=1,
-            source_root=source_root,
-            processed_root=processed_base,
-            files=written_paths,
-            extra={"script": "crop_card_images.py"},
-        )
-
     return CropResult(
         processed=processed_files,
         skipped=skipped_bad_names,
@@ -152,12 +136,6 @@ def main() -> None:
         action="store_true",
         help="Delete source screenshots after successful processing",
     )
-    parser.add_argument(
-        "--dataset-id",
-        type=str,
-        default="cards-default",
-        help="Dataset identifier written into dataset_manifest.json",
-    )
     args = parser.parse_args()
 
     try:
@@ -167,10 +145,8 @@ def main() -> None:
             layout_yaml=args.layout_yaml,
             id_bytes=args.id_bytes,
             delete_source=args.delete_source,
-            dataset_id=args.dataset_id,
             source_paths=None,
             output_dir=None,
-            write_manifest=True,
         )
     except ValueError as exc:
         raise SystemExit(str(exc)) from exc

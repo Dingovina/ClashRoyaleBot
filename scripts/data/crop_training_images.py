@@ -11,7 +11,6 @@ _REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
-from src.ml.manifest import write_dataset_manifest
 from scripts.data.crop_battlefield_images import crop_battlefield_images
 from scripts.data.crop_elixir_images import crop_elixir_images
 from scripts.data.crop_card_images import crop_card_images
@@ -60,12 +59,6 @@ def main() -> None:
         type=Path,
         default=Path("data/processed"),
         help="Output root for split model-ready PNGs",
-    )
-    parser.add_argument(
-        "--dataset-id",
-        type=str,
-        default="roi-default",
-        help="Dataset identifier for generated manifests",
     )
     parser.add_argument(
         "--cards-id-bytes",
@@ -138,10 +131,8 @@ def main() -> None:
             layout_yaml=args.layout_yaml,
             id_bytes=args.cards_id_bytes,
             delete_source=False,
-            dataset_id=f"{args.dataset_id}-{split}-cards",
             source_paths=to_process,
             output_dir=split_root / _cards_dir_name(split),
-            write_manifest=False,
         )
         total_processed += result.processed
         total_skipped += result.skipped
@@ -158,23 +149,6 @@ def main() -> None:
         files_done &= done
     for src in sorted(files_done):
         src.unlink(missing_ok=True)
-
-    write_dataset_manifest(
-        manifest_path=split_root / "dataset_manifest.json",
-        dataset_id=f"{args.dataset_id}-{split}",
-        schema_version=1,
-        source_root=raw_match_dir,
-        processed_root=split_root,
-        files=all_written_paths,
-        extra={
-            "script": "crop_training_images.py",
-            "targets": selected_targets,
-            "split": split,
-            "match_id": args.match_id,
-            "skipped_check_files": skipped_check,
-            "deleted_raw_files": len(files_done),
-        },
-    )
 
     print(
         "done: processed={} skipped={} deleted_raw={} raw_dir={} processed_root={}".format(

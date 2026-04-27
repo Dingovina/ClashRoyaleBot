@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import sys
 from pathlib import Path
 
@@ -11,9 +12,17 @@ _REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
-from src.ml.manifest import write_dataset_manifest
 from src.perception.roi.screen_layout import PixelRect, load_screen_layout_reference
 from scripts.data.crop_result import CropResult
+
+_REGION_TO_HP_INDEX: dict[str, int] = {
+    "friendly_left_princess": 0,
+    "friendly_right_princess": 1,
+    "friendly_king": 2,
+    "enemy_left_princess": 3,
+    "enemy_right_princess": 4,
+    "enemy_king": 5,
+}
 
 
 def _collect_pngs(directory: Path) -> list[Path]:
@@ -27,12 +36,32 @@ def _crop_rect(image: Image.Image, rect: PixelRect) -> Image.Image:
     return image.convert("RGB").crop((rect.left, rect.top, rect.right + 1, rect.bottom + 1))
 
 
+def _target_filename_for_region(src_path: Path, region_name: str) -> str:
+    tokens = src_path.stem.split("_")
+    if len(tokens) < 6:
+        raise ValueError(f"Unexpected source filename format: {src_path.name}")
+    hp_value = tokens[_REGION_TO_HP_INDEX[region_name]]
+    random_id = "_".join(tokens[6:]).strip()
+    if not random_id:
+        # Keep filenames stable even for old files without explicit random-id in stem.
+        random_id = hashlib.sha1(src_path.stem.encode("utf-8")).hexdigest()[:10]
+    return f"{hp_value}_{random_id}.png"
+
+
+def _hp_value_for_region(src_path: Path, region_name: str) -> str:
+    tokens = src_path.stem.split("_")
+    if len(tokens) < 6:
+        raise ValueError(f"Unexpected source filename format: {src_path.name}")
+    return tokens[_REGION_TO_HP_INDEX[region_name]]
+
+
 def crop_tower_hp_images(
     *,
     raw_root: Path | None,
     processed_root: Path | None,
     layout_yaml: Path,
     delete_source: bool,
+    skip_none: bool = True,
     source_paths: list[Path] | None = None,
     output_dir: Path | None = None,
 ) -> CropResult:
@@ -60,7 +89,10 @@ def crop_tower_hp_images(
         try:
             with Image.open(src_path) as image:
                 for region_name, rect in regions.items():
-                    dst_name = f"{src_path.stem}__{region_name}.png"
+                    hp_value = _hp_value_for_region(src_path, region_name)
+                    if skip_none and hp_value.lower() == "none":
+                        continue
+                    dst_name = _target_filename_for_region(src_path, region_name)
                     dst_path = output_dir / region_name / dst_name
                     dst_path.parent.mkdir(parents=True, exist_ok=True)
                     cropped = _crop_rect(image, rect)
@@ -84,26 +116,41 @@ def crop_tower_hp_images(
 def main() -> None:
     parser = argparse.ArgumentParser(description="Crop screenshots to all tower HP ROIs")
     parser.add_argument("--raw-root", type=Path, default=Path("data/raw"))
-    parser.add_argument("--processed-root", type=Path, default=Path("data/processed"))
+    parser.add_argument("--processed-root", type=Path, default=Path("data"))
     parser.add_argument("--layout-yaml", type=Path, default=Path("configs/screen_layout_reference.yaml"))
+    parser.add_argument(
+        "--source-dir",
+        type=Path,
+        default=None,
+        help="Optional directory with source PNG screenshots",
+    )
+    parser.add_argument(
+        "--output-dir",
+        type=Path,
+        default=None,
+        help="Optional output directory for cropped tower HP regions",
+    )
+    parser.add_argument(
+        "--skip-none",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Skip crops where target tower HP value is 'none' (default: enabled)",
+    )
     parser.add_argument("--delete-source", action="store_true")
-    parser.add_argument("--dataset-id", type=str, default="tower-hp-default")
     args = parser.parse_args()
+
+    source_paths = None
+    if args.source_dir is not None:
+        source_paths = _collect_pngs(args.source_dir)
 
     result = crop_tower_hp_images(
         raw_root=args.raw_root,
         processed_root=args.processed_root,
         layout_yaml=args.layout_yaml,
         delete_source=args.delete_source,
-    )
-    write_dataset_manifest(
-        manifest_path=args.processed_root / "tower_hp_test" / "dataset_manifest.json",
-        dataset_id=args.dataset_id,
-        schema_version=1,
-        source_root=args.raw_root,
-        processed_root=args.processed_root,
-        files=result.written_paths,
-        extra={"script": "crop_tower_hp_images.py"},
+        skip_none=args.skip_none,
+        source_paths=source_paths,
+        output_dir=args.output_dir,
     )
     print(
         "tower_hp: processed={} skipped={} crops_saved={}".format(

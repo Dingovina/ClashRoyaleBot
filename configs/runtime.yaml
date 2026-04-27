@@ -1,12 +1,13 @@
 runtime:
   # Match identifier used for ML raw-frame collection under data/raw/<match_id>/.
-  match_id: local-match
+  match_id: local-match-001
   # --- Policy thresholds ---
-  tick_interval_ms: 1000
-  action_rate_limit_ms: 1000
+  tick_interval_ms: 500
+  action_rate_limit_ms: 500
   action_confidence_threshold: 0.70
   no_op_confidence_threshold: 0.55
-  min_elixir_for_non_urgent_action: 3.0
+  min_elixir_for_non_urgent_action: 11.0
+
 
   # --- Match lifecycle ---
   # Raised threshold for stricter match-start readiness.
@@ -16,7 +17,7 @@ runtime:
   # When false, no PNG frames are written under capture_debug_dir (e.g. data/raw).
   capture_debug_save_enabled: true
   capture_debug_dir: data/raw
-  capture_every_n_ticks: 5
+  capture_every_n_ticks: 10
 
   # --- Actuation ---
   # Always live in this runtime profile.

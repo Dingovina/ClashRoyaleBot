@@ -27,7 +27,6 @@ from PIL import Image
 
 from src.perception.models.elixir_net import ElixirDigitNet
 from src.perception.datasets.elixir_samples import collect_elixir_labeled_pngs
-from src.ml.manifest import write_artifact_manifest
 
 
 def _collect_samples(data_dir: Path, *, min_count: int) -> list[tuple[Path, int]]:
@@ -59,7 +58,6 @@ def main() -> None:
     parser.add_argument("--weight-decay", type=float, default=1e-2)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--dataset-id", type=str, default="elixir-default")
-    parser.add_argument("--artifact-manifest", type=Path, default=None)
     args = parser.parse_args()
 
     torch.manual_seed(args.seed)
@@ -160,22 +158,6 @@ def main() -> None:
             },
         },
         args.out,
-    )
-    manifest_path = args.artifact_manifest if args.artifact_manifest else args.out.with_suffix(".manifest.json")
-    write_artifact_manifest(
-        manifest_path=manifest_path,
-        model_id="elixir-digit-net",
-        task="elixir_digit_classification",
-        dataset_id=args.dataset_id,
-        checkpoint_path=args.out,
-        metrics={"best_loss": best_val_loss, "best_acc": best_val_acc},
-        train_args={
-            "epochs": args.epochs,
-            "batch_size": args.batch_size,
-            "lr": args.lr,
-            "weight_decay": args.weight_decay,
-            "seed": args.seed,
-        },
     )
     print(f"Wrote {args.out.resolve()} (best_loss={best_val_loss:.4f}, best_acc={best_val_acc:.1%})")
 

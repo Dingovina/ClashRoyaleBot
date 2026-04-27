@@ -3,15 +3,15 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-_NAME_RE = re.compile(r"^(?P<label>\d+)_\d+\.png$", re.IGNORECASE)
+_NAME_RE = re.compile(r"^(?P<label>\d+)_.+\.png$", re.IGNORECASE)
 
 
 def collect_elixir_labeled_pngs(data_dir: Path) -> list[tuple[Path, int]]:
     """
     Collect ``(path, label)`` samples for elixir digit training/eval.
 
-    Expected file naming under ``data_dir``: ``<elixir>_<index>.png``,
-    where ``<elixir>`` is in ``0..10`` (for example ``7_2.png``).
+    Expected file naming under ``data_dir``: ``<elixir>_<suffix>.png``,
+    where ``<elixir>`` is in ``0..10`` (for example ``7_anything.png``).
     """
     if not data_dir.is_dir():
         raise ValueError(f"Expected existing directory with PNGs: {data_dir}")
@@ -34,7 +34,7 @@ def collect_elixir_labeled_pngs(data_dir: Path) -> list[tuple[Path, int]]:
     if invalid_names:
         preview = ", ".join(invalid_names[:5])
         raise ValueError(
-            f"Invalid elixir sample names in {data_dir}; expected <elixir>_<index>.png, got: {preview}"
+            f"Invalid elixir sample names in {data_dir}; expected <elixir>_<suffix>.png, got: {preview}"
         )
     if out_of_range:
         preview = ", ".join(out_of_range[:5])
